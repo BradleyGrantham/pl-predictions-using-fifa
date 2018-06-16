@@ -29,7 +29,10 @@ class FifaSpider(scrapy.Spider):
     def parse_player(self, response):
         name = response.css('div.media-body').css('h2.media-heading::text').extract()[0]
 
-        team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[0].extract()
+        try:
+            team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[2].extract()
+        except IndexError:
+            team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[0].extract()
 
         position = response.css('div.col-lg-4').css('div.panel-body').css('p')[0].css('a::attr(title)').extract()[0]
 

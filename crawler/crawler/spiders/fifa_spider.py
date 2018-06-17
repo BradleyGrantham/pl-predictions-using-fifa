@@ -48,3 +48,56 @@ class FifaSpider(scrapy.Spider):
                 'rating': int(rating),
             }
         }
+
+
+class MatchSpider(scrapy.Spider):
+    name = "matchlineups"
+
+    def start_requests(self):
+        urls = [
+            'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2017-2018/',
+        ]
+        for url in urls:
+            yield scrapy.Request(url=url, callback=self.parse_fixtures_page)
+
+    def parse_fixtures_page(self, response):
+        for info_button in response.css('ul.action-list').css('a::attr(href)'):
+            url = response.urljoin(info_button.extract())
+            yield scrapy.Request(url, callback=self.parse_match_page)
+
+    def parse_match_page(self, response):
+        
+        home_team, away_team = response.css('div.player h2 a::text').extract()
+
+        date = response.css('em.date').css('span.timestamp::text').extract_first()
+
+        url = response.request.url
+
+        match_number = response.request.url.split('-')[-1].split('/')[0]
+
+        home_goals, away_goals = response.css('div.info strong.score::text').extract_first().split('-')
+        
+        for table in response.css('div.table-holder'):
+            if table.css('h2::text').extract_first() == 'Lineups and subsitutes':
+                lineups = table
+        
+        home_lineup = lineups.css('table.info-table')[0]
+        away_lineup = lineups.css('table.info-table')[1]
+
+        home_lineup = [slugify(x) for x in home_lineup.css('tr td.left-align').css('a::attr(title)').extract()]
+        away_lineup = [slugify(x) for x in away_lineup.css('tr td.left-align').css('a::attr(title)').extract()]
+
+        yield {
+            'match number': int(match_number),
+            'info' : {
+                'date' : date,
+                'home team': slugify(home_team),
+                'away team': slugify(away_team),
+                'home goals': int(home_goals),
+                'away goals': int(away_goals),
+                'home lineup': ';'.join(home_lineup),
+                'away lineup': ';'.join(away_lineup),
+                'url': url,
+            }
+        }
+

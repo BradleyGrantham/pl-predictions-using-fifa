@@ -31,10 +31,12 @@ class FifaSpider(scrapy.Spider):
 
         try:
             team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[2].extract()
+            # position = response.css('div.col-lg-4').css('div.panel-body').css('p')[2].css('a::attr(title)').extract()[0]
         except IndexError:
             team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[0].extract()
+            # position = response.css('div.col-lg-4').css('div.panel-body').css('p')[0].css('a::attr(title)').extract()[0]
 
-        position = response.css('div.col-lg-4').css('div.panel-body').css('p')[0].css('a::attr(title)').extract()[0]
+        position = response.css('div.col-lg-5').css('div.panel-body').css('span.label::text').extract_first()
 
         rating = response.css('div.col-lg-5').css('div.panel-heading').css('span.label')[0].css('span.label::text').extract()[0]
 

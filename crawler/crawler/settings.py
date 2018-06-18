@@ -27,7 +27,7 @@ CONCURRENT_REQUESTS = 1  # make it more realistic for web browser, which is what
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 5  # make it more realistic for web browser, which is what we have identified as
+DOWNLOAD_DELAY = 0  # make it more realistic for web browser, which is what we have identified as
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16

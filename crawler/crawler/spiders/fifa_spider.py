@@ -5,6 +5,8 @@ from slugify import slugify
 class FifaSpider(scrapy.Spider):
     name = "fifastats"
 
+    # TODO - run this for extended period of time to get all players
+
     def start_requests(self):
         urls = [
             'https://www.fifaindex.com/players/',
@@ -31,29 +33,40 @@ class FifaSpider(scrapy.Spider):
 
         try:
             team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[2].extract()
-            # position = response.css('div.col-lg-4').css('div.panel-body').css('p')[2].css('a::attr(title)').extract()[0]
         except IndexError:
             team = response.css('div.col-lg-4').css('div.panel-heading').css('a::attr(title)')[0].extract()
-            # position = response.css('div.col-lg-4').css('div.panel-body').css('p')[0].css('a::attr(title)').extract()[0]
+
+        number = response.css('div.col-lg-4').css('div.panel-body').css('span.pull-right')[3].css(
+                'span::text').extract()[0]
+
+        if len(number) == 4:
+            number = response.css('div.col-lg-4').css('div.panel-body').css('span.pull-right')[1].css(
+                'span::text').extract()[0]
 
         position = response.css('div.col-lg-5').css('div.panel-body').css('span.label::text').extract_first()
 
         rating = response.css('div.col-lg-5').css('div.panel-heading').css('span.label')[0].css('span.label::text').extract()[0]
 
+        nationality = slugify(response.css('h2.subtitle a::text').extract()[0])
+
         yield {
             'name': slugify(name),
-            'info' : {
-                'raw team' : team,
+            'info': {
+                'raw team': team,
                 'team': slugify(team),
                 'position': position,
                 'raw name': name,
                 'rating': int(rating),
+                'kit number': number,
+                'nationality': nationality,
             }
         }
 
 
 class MatchSpider(scrapy.Spider):
     name = "matchlineups"
+
+    # TODO - want the other names - not full names
 
     def start_requests(self):
         urls = [
@@ -83,22 +96,42 @@ class MatchSpider(scrapy.Spider):
             if table.css('h2::text').extract_first() == 'Lineups and subsitutes':
                 lineups = table
         
-        home_lineup = lineups.css('table.info-table')[0]
-        away_lineup = lineups.css('table.info-table')[1]
+        home_lineup_css = lineups.css('table.info-table')[0]
+        away_lineup_css = lineups.css('table.info-table')[1]
 
-        home_lineup = [slugify(x) for x in home_lineup.css('tr td.left-align').css('a::attr(title)').extract()]
-        away_lineup = [slugify(x) for x in away_lineup.css('tr td.left-align').css('a::attr(title)').extract()]
+        home_lineup_raw = [slugify(x) for x in home_lineup_css.css('tr td.left-align').css('a::attr(title)').extract()]
+        away_lineup_raw = [slugify(x) for x in away_lineup_css.css('tr td.left-align').css('a::attr(title)').extract()]
+
+        home_lineup = [slugify(x) for x in home_lineup_css.css('tr td.left-align').css('a::text').extract()]
+        away_lineup = [slugify(x) for x in away_lineup_css.css('tr td.left-align').css('a::text').extract()]
+
+        home_lineup_number = [int(x) for x in home_lineup_css.css('tr td.size23 strong::text').extract()]
+        away_lineup_number = [int(x) for x in away_lineup_css.css('tr td.size23 strong::text').extract()]
+
+        home_lineup_nationality = [int(x) for x in home_lineup_css.css('tr td.left-align::attr(alt)').extract()]
+        away_lineup_nationality = [int(x) for x in away_lineup_css.css('tr td.left-align::attr(alt)').extract()]
+
+        home_lineup_nationality = [slugify(x) for x in
+                                   home_lineup_css.css('tr td.left-align').css('img.flag-ico::attr(alt)').extract()]
+        away_lineup_nationality = [slugify(x) for x in
+                                   away_lineup_css.css('tr td.left-align').css('img.flag-ico::attr(alt)').extract()]
 
         yield {
             'match number': int(match_number),
-            'info' : {
-                'date' : date,
+            'info': {
+                'date': date,
                 'home team': slugify(home_team),
                 'away team': slugify(away_team),
                 'home goals': int(home_goals),
                 'away goals': int(away_goals),
-                'home lineup': ';'.join(home_lineup),
-                'away lineup': ';'.join(away_lineup),
+                'home lineup raw names': home_lineup_raw,
+                'away lineup raw names': away_lineup_raw,
+                'home lineup names': home_lineup,
+                'away lineup names': away_lineup,
+                'home lineup numbers': home_lineup_number,
+                'away lineup numbers': away_lineup_number,
+                'home lineup nationalities': home_lineup_nationality,
+                'away lineup nationalities': away_lineup_nationality,
                 'url': url,
             }
         }

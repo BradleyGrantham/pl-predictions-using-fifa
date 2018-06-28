@@ -71,6 +71,11 @@ class MatchSpider(scrapy.Spider):
     def start_requests(self):
         urls = [
             'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2017-2018/',
+            'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2016-2017/',
+            'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2015-2016/',
+            'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2014-2015/',
+            'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2013-2014/',
+
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse_fixtures_page)

@@ -9,7 +9,13 @@ class FifaSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = [
-            'https://www.fifaindex.com/players/',
+            # 'https://www.fifaindex.com/players/',
+            'https://www.fifaindex.com/players/fifa17_173/',
+            'https://www.fifaindex.com/players/fifa16_73/',
+            'https://www.fifaindex.com/players/fifa15_14/',
+            'https://www.fifaindex.com/players/fifa14_13/',
+            'https://www.fifaindex.com/players/fifa13_10/',
+
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
@@ -59,6 +65,7 @@ class FifaSpider(scrapy.Spider):
                 'rating': int(rating),
                 'kit number': number,
                 'nationality': nationality,
+                'url': response.request.url,
             }
         }
 

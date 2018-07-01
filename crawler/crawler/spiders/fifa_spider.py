@@ -148,3 +148,52 @@ class MatchSpider(scrapy.Spider):
             }
         }
 
+
+class FifaIndexTeamScraper(scrapy.Spider):
+    name = "fifa-index-team"
+
+    # TODO - run this for extended period of time to get all players
+
+    def start_requests(self):
+        urls = [
+            'https://www.fifaindex.com/teams/',
+            'https://www.fifaindex.com/teams/fifa17_173/',
+            'https://www.fifaindex.com/teams/fifa16_73/',
+            'https://www.fifaindex.com/teams/fifa15_14/',
+            'https://www.fifaindex.com/teams/fifa14_13/',
+        ]
+        for url in urls:
+            yield scrapy.Request(url=url, callback=self.parse)
+
+    def parse(self, response):
+        links = [a.extract() for a in response.css('td a::attr(href)')]
+        for link in links:
+            if '/team/' in link:
+                url = response.urljoin(link)
+                yield scrapy.Request(url, callback=self.parse_team)
+
+        next_page = response.css('li.next a::attr(href)').extract_first()
+        if next_page is not None and int(next_page.split('/')[-2]) < 10:
+            next_page = response.urljoin(next_page)
+            yield scrapy.Request(next_page, callback=self.parse)
+
+    def parse_team(self, response):
+        team = slugify(response.css('.media-heading::text').extract_first())
+
+        for i in range(1, len(response.css('tr'))):
+            name = slugify(response.css('.table > tbody:nth-child(2) > tr:nth-child({}) > td:nth-child(6) > a:nth-child(1)::attr(title)'.format(i)).extract_first())
+            number = int(response.css('.table > tbody:nth-child(2) > tr:nth-child({}) > td:nth-child(1)::text'.format(i)).extract_first())
+            nationality = slugify(response.css('.table > tbody:nth-child(2) > tr:nth-child({}) > td:nth-child(4) > a:nth-child(1) > img:nth-child(1)::attr(title)'.format(i)).extract_first())
+            position = response.css('.table > tbody:nth-child(2) > tr:nth-child({}) > td:nth-child(7) > a:nth-child(1) > span:nth-child(1)::text'.format(i)).extract_first()
+            rating = response.css('table > tbody:nth-child(2) > tr:nth-child({}) > td:nth-child(5) > span:nth-child(1)::text'.format(i)).extract_first()
+
+
+            yield {
+                'name': slugify(name),
+                'team': team,
+                'position': position,
+                'rating': int(rating),
+                'number': number,
+                'nationality': nationality,
+                'url': response.request.url
+            }

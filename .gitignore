@@ -1,8 +1,8 @@
-*.ipynb_checkpoints
+*.ipynb_checkpoints/
 *.ipynb
-.vscode
+.vscode/
+scratch/
 
-*__pycache__
 
 # Created by .ignore support plugin (hsz.mobi)
 ### JetBrains template

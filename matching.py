@@ -1,25 +1,11 @@
-import json
-
 import numpy as np
 
 import constants
+from data_methods import read_player_data, read_match_data, assign_season_to_player, assign_guids,\
+    assign_general_position, assign_season_to_match
 
 
-def read_player_data():
-    with open('./data/players.json') as json_file:
-        data = json.load(json_file)
-
-    return data
-
-
-def read_match_data():
-    with open('./data/matchlineups.json') as json_file:
-        data = json.load(json_file)
-
-    return data
-
-
-def lineup_matching(lineup_names, lineup_numbers, lineup_nationalities, team, fifa_data):
+def lineup_matching(lineup_names, lineup_numbers, lineup_nationalities, team, season, fifa_data):
     all_fifa_players = [player['name'] for _, player in fifa_data.items()]
 
     probability_dict = {lineup_name: dict.fromkeys(all_fifa_players, 0) for lineup_name in lineup_names}
@@ -30,7 +16,7 @@ def lineup_matching(lineup_names, lineup_numbers, lineup_nationalities, team, fi
         for guid, player in fifa_data.items():
             probability_dict[lineup_name][guid] = assign_probability(player, lineup_name, lineup_number,
                                                                      lineup_nationality,
-                                                                     team)
+                                                                     team, season)
 
     max_prob_dict = {max(v, key=v.get): k for k, v in probability_dict.items()}
 
@@ -40,25 +26,35 @@ def lineup_matching(lineup_names, lineup_numbers, lineup_nationalities, team, fi
 
     if any(probabilities) < 0.5:
         print('Warning, lowest probability is {}'.format(min(probabilities)))
+        # TODO - custom warning
 
     x = [fifa_data[guid] for guid, _ in max_prob_dict.items()]
 
     return x
 
 
-def assign_probability(player, name, number, nationality, team):
+def assign_probability(player, name, number, nationality, team, season):
     name_probability = constants.NAME_PROBABILITY * match_name(name, player['name'])
-    team_probability = constants.TEAM_PROBABILITY * exact_match(team, player['info']['team'])
+    team_probability = constants.TEAM_PROBABILITY * fuzzy_team_match(team, player['team'])
     nationality_probability = constants.NATIONALITY_PROBABILITY * exact_match(nationality,
-                                                                              player['info']['nationality'])
-    number_probability = constants.NUMBER_PROBABILITY * exact_match(int(number), int(player['info']['kit number']))
-
-    return sum([name_probability, team_probability, nationality_probability, number_probability])
+                                                                              player['nationality'])
+    number_probability = constants.NUMBER_PROBABILITY * exact_match(int(number), int(player['number']))
+    season_probability = constants.SEASON_PROBABILITY * exact_match(season, player['season'])
+    return sum([name_probability, team_probability, nationality_probability, number_probability, season_probability])
 
 
 def exact_match(object1, object2):
     if object1 == object2:
         return 1.0
+    else:
+        return 0.0
+
+
+def fuzzy_team_match(match_team, player_team):
+    if player_team == match_team:
+        return 1.0
+    elif player_team in constants.NATIONALITIES:
+        return 0.5
     else:
         return 0.0
 
@@ -82,24 +78,24 @@ def create_feature_vector_from_players(players):
     attack = []
 
     for player in players:
-        if player['info']['general position'] == 'goalkeeper':
-            goalkeeper.append(int(player['info']['rating']))
-        elif player['info']['general position'] == 'defence':
-            defence.append(int(player['info']['rating']))
-        elif player['info']['general position'] == 'midfield':
-            midfield.append(int(player['info']['rating']))
-        elif player['info']['general position'] == 'attack':
-            attack.append(int(player['info']['rating']))
+        if player['general position'] == 'goalkeeper':
+            goalkeeper.append(int(player['rating']))
+        elif player['general position'] == 'defence':
+            defence.append(int(player['rating']))
+        elif player['general position'] == 'midfield':
+            midfield.append(int(player['rating']))
+        elif player['general position'] == 'attack':
+            attack.append(int(player['rating']))
         else:
             print("Error")
 
     assert len(goalkeeper) == 1, "Need exactly 1 goalkeeper"
     assert len(defence) <= 6, "No more than 6 defenders allowed, there is {}".format(len(defence))
-    assert len(midfield) <= 6, "No more than 6 midfielders allowed, there is {}".format(len(midfield))
-    assert len(attack) <= 4, "No more than 4 attackes allowed, there is {}".format(len(attack))
+    assert len(midfield) <= 7, "No more than 7 midfielders allowed, there is {}".format(len(midfield))
+    assert len(attack) <= 4, "No more than 4 attackers allowed, there is {}".format(len(attack))
 
     defence = defence + [0] * (6 - len(defence))
-    midfield = midfield + [0] * (6 - len(midfield))
+    midfield = midfield + [0] * (7 - len(midfield))
     attack = attack + [0] * (4 - len(attack))
 
     return goalkeeper + defence + midfield + attack
@@ -112,72 +108,65 @@ if __name__ == '__main__':
 
     match_lineups = read_match_data()
 
-    # test_match = match_lineups[97]
-    #
-    # home_lineup_names = test_match['info']['home lineup names']
-    # home_team = constants.TEAM_MAPPINGS['17-18'][test_match['info']['home team']]
-    # away_lineup_names = test_match['info']['away lineup names']
-    # away_team = test_match['info']['away team']
-    # home_lineup_numbers = test_match['info']['home lineup numbers']
-    # away_lineup_numbers = test_match['info']['away lineup numbers']
-    # home_lineup_nationalities = test_match['info']['home lineup nationalities']
-    # away_lineup_nationalities = test_match['info']['away lineup nationalities']
-    #
-    # if len(home_lineup_names) != 11:
-    #     print('error')
-    #
-    # players_matched = lineup_matching(home_lineup_names, home_lineup_numbers, home_lineup_nationalities,
-    #                                          home_team, data)
-    #
-    # print(create_feature_vector_from_players(players_matched))
+    for match in match_lineups:
+        match['info']['season'] = assign_season_to_match(match['info']['date'])
+
+    match_lineups = [match for match in match_lineups if match['info']['season'] != '2017-2018']
+
+    data = assign_guids(data)
+
+    for _, player in data.items():
+        player['general position'] = assign_general_position(player['position'])
+        player['season'] = assign_season_to_player(player['url'])
 
     feature_vectors = []
     targets = []
 
-    for i, test_match in enumerate(match_lineups):
+    for i, test_match in enumerate(reversed(match_lineups)):
 
         # test_match = match_lineups[150]
 
+        season = test_match['info']['season']
         home_lineup_names = test_match['info']['home lineup names']
-        home_team = constants.TEAM_MAPPINGS['17-18'][test_match['info']['home team']]
+        home_team = constants.LINEUP_TO_PLAYER_TEAM_MAPPINGS['ALL'][test_match['info']['home team']]
         away_lineup_names = test_match['info']['away lineup names']
-        away_team = constants.TEAM_MAPPINGS['17-18'][test_match['info']['away team']]
+        away_team = constants.LINEUP_TO_PLAYER_TEAM_MAPPINGS['ALL'][test_match['info']['away team']]
         home_lineup_numbers = test_match['info']['home lineup numbers']
         away_lineup_numbers = test_match['info']['away lineup numbers']
         home_lineup_nationalities = test_match['info']['home lineup nationalities']
         away_lineup_nationalities = test_match['info']['away lineup nationalities']
         home_goals = test_match['info']['home goals']
         away_goals = test_match['info']['away goals']
+        # home_odds = test_match['info']['home odds']
+        # draw_odds = test_match['info']['draw odds']
+        # away_odds = test_match['info']['away odds']
+
+        print(i, season, "{} vs. {}".format(home_team, away_team))
 
         if len(home_lineup_names) != 11:
             print('error')
 
-        home_players_matched = lineup_matching(home_lineup_names, home_lineup_numbers, home_lineup_nationalities, home_team, data)
-        away_players_matched = lineup_matching(away_lineup_names, away_lineup_numbers, away_lineup_nationalities, away_team, data)
+        home_players_matched = lineup_matching(home_lineup_names, home_lineup_numbers, home_lineup_nationalities,
+                                               home_team, season, data)
+        away_players_matched = lineup_matching(away_lineup_names, away_lineup_numbers, away_lineup_nationalities,
+                                               away_team, season, data)
 
         home_feature_vector = create_feature_vector_from_players(home_players_matched)
         away_feature_vector = create_feature_vector_from_players(away_players_matched)
-        #
-        # print(home_lineup_names)
-        # print(away_lineup_names)
-        #
-        # print(home_players_matched)
-        # print(away_players_matched)
-        #
-        # print(home_feature_vector)
-        # print(away_feature_vector)
 
         feature_vectors.append(home_feature_vector + away_feature_vector)
-        targets.append(int(home_goals))
+        # targets.append([home_odds, draw_odds, away_odds])
+        targets.append(home_goals)
 
         feature_vectors.append(away_feature_vector + home_feature_vector)
-        targets.append(int(away_goals))
+        # targets.append([away_odds, draw_odds, home_odds])
+        targets.append(away_goals)
 
     feature_vectors = np.array(feature_vectors)
     targets = np.array(targets)
 
     np.save('feature_vectors.npy', feature_vectors)
-    np.save('targets.npy', targets)
+    np.save('targets_odds.npy', targets)
 
     print(feature_vectors.shape, targets.shape)
     # print(i)

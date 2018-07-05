@@ -5,7 +5,10 @@ from collections import namedtuple
 
 import numpy as np
 
-from data_methods import read_match_data, read_player_data, convert_date_to_datetime_object
+import constants
+from data_methods import read_match_data, read_player_data, convert_date_to_datetime_object, assign_season_to_match, assign_guids, assign_season_to_player, assign_general_position
+from matching import match_lineups_to_fifa_players, create_feature_vector_from_players
+from model import NeuralNet
 
 # calculate odds based on lineup
 # if value -> place bet to make £2
@@ -14,7 +17,7 @@ from data_methods import read_match_data, read_player_data, convert_date_to_date
 # do this for all games
 
 
-Bet = namedtuple('Bet', ['odds', 'stake', 'profit'])
+Bet = namedtuple('Bet', ['true_odds', 'predicted_odds', 'stake', 'type', 'profit', 'match'])
 
 
 class BetTracker:
@@ -34,6 +37,7 @@ class BetTracker:
         self.pending_bet = None
 
     def bet_lost(self):
+        self.profit -= self.pending_bet.stake
         self.completed_bets.append((self.pending_bet, 'L'))
         self.pending_bet = None
 
@@ -55,24 +59,53 @@ def main():
 
     bet_tracker = BetTracker()
 
-    match_data = read_match_data()
-    for match in match_data:
-        match['info']['datetime'] = convert_date_to_datetime_object(match['info']['date'])
+    match_data = read_match_data(season='2017-2018')
 
-    match_data = sorted(match_data, key=lambda x: x['info']['datetime'])
+    player_data = read_player_data(season='2017-2018')
+
+    net = NeuralNet()
 
     for match in match_data:
-        home_odds = match['info']['home odds']
-        if home_odds < 2.0:
+
+        print(match['info']['date'], match['info']['home team'], match['info']['away team'])
+
+        home_players_matched = match_lineups_to_fifa_players(match['info']['home lineup names'], match['info']['home lineup numbers'], match['info']['home lineup nationalities'],
+                                                             constants.LINEUP_TO_PLAYER_TEAM_MAPPINGS['ALL'][match['info']['home team']], match['info']['season'], player_data)
+        away_players_matched = match_lineups_to_fifa_players(match['info']['away lineup names'], match['info']['away lineup numbers'], match['info']['away lineup nationalities'],
+                                                             constants.LINEUP_TO_PLAYER_TEAM_MAPPINGS['ALL'][match['info']['away team']], match['info']['season'], player_data)
+
+        home_feature_vector = create_feature_vector_from_players(home_players_matched)
+        away_feature_vector = create_feature_vector_from_players(away_players_matched)
+
+        feature_vector = np.array(home_feature_vector + away_feature_vector).reshape(-1, 36)
+
+        feature_vector = ((feature_vector - 50) / (100 - 50)).clip(min=0)
+
+        probabilties = net.predict(feature_vector)
+
+        pred_home_odds, pred_draw_odds, pred_away_odds = [1/x for x in probabilties[0]]
+
+        home_odds, draw_odds, away_odds = match['info']['home odds'], match['info']['draw odds'], match['info']['away odds']
+
+        if pred_home_odds < home_odds < 3.0:
             stake = calculate_stake(home_odds, method='2 pound profit')
-            bet = Bet(odds=match['info']['home odds'], stake=stake, profit=2)
+            bet = Bet(true_odds=home_odds, predicted_odds=pred_home_odds, stake=stake, profit=2, match=match, type='home')
             bet_tracker.make_bet(bet)
             if match['info']['home goals'] > match['info']['away goals']:
                 bet_tracker.bet_won()
+            else:
+                bet_tracker.bet_lost()
+        elif pred_away_odds < away_odds < 3.0:
+            stake = calculate_stake(away_odds, method='2 pound profit')
+            bet = Bet(true_odds=away_odds, predicted_odds=pred_away_odds, stake=stake, profit=2, match=match, type='away')
+            bet_tracker.make_bet(bet)
+            if match['info']['home goals'] < match['info']['away goals']:
+                bet_tracker.bet_won()
+            else:
                 bet_tracker.bet_lost()
 
     return bet_tracker
 
 
 if __name__ == '__main__':
-    data = main()
+    tracker = main()

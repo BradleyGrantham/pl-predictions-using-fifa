@@ -23,7 +23,7 @@ class NeuralNet:
     def build_model(self):
         with self.graph.as_default():
 
-            self.input = tf.placeholder(tf.float32, shape=[None, 34], name='input')
+            self.input = tf.placeholder(tf.float32, shape=[None, 36], name='input')
             self.target = tf.placeholder(tf.float32, shape=[None, 3], name='target')
             self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
@@ -41,44 +41,52 @@ class NeuralNet:
 
     @staticmethod
     def init_saver(sess):
-        writer = tf.summary.FileWriter('./log/', sess.graph)
-        return writer
+        writer = tf.summary.FileWriter('./tf-log/', sess.graph)
+        saver = tf.train.Saver()
+        return writer, saver
 
     def train_model(self, X, y, X_val, y_val):
 
+        previous_val_loss = np.inf
+
         with tf.Session(graph=self.graph) as sess:
 
-                writer = self.init_saver(sess)
+                writer, saver = self.init_saver(sess)
 
                 sess.run(tf.global_variables_initializer())
 
-                for i in range(200000):
+                for i in range(500000):
 
-                    feed_dict = {self.input: X, self.target: y, self.keep_prob: 0.99}
+                    feed_dict = {self.input: X, self.target: y, self.keep_prob: 0.95}
 
                     _, current_loss, train_sum = sess.run([self.train, self.loss, self.training_summary], feed_dict=feed_dict)
 
-                    if i % 1000 == 0:
+                    if i % 10000 == 0:
                         val_loss, val_sum = sess.run([self.loss, self.validation_summary], feed_dict={self.input: X_val, self.target: y_val, self.keep_prob: 1.0})
-                        print(current_loss, val_loss)
+                        print(i, current_loss, val_loss)
                         writer.add_summary(val_sum, i)
                         writer.add_summary(train_sum, i)
 
-                predictions = []
+                        if val_loss > previous_val_loss:
+                            break
 
-                for x_, y_ in zip(X_val, y_val):
+                        previous_val_loss = val_loss
 
-                    predictions.append((self.predict(sess, x_.reshape(1, 34)))[0][0])
+                saver.save(sess, './models/model1')
+
+    def predict(self, X, model_name='model1'):
+
+        with tf.Session() as sess:
+            saver = tf.train.import_meta_graph('./models/' + model_name + '.meta')
+            saver.restore(sess, './models/' + model_name)
+            graph = tf.get_default_graph()
+            input = graph.get_tensor_by_name('input:0')
+            keep_prob = graph.get_tensor_by_name('keep_prob:0')
+            output = graph.get_tensor_by_name('softmax:0')
+            feed_dict = {input: X, keep_prob: 1.0}
+            predictions = sess.run(output, feed_dict=feed_dict)
 
         return predictions
-
-    def predict(self, sess, X):
-
-        feed_dict = {self.input: X, self.keep_prob: 1.0}
-
-        result = sess.run([self.output], feed_dict=feed_dict)
-
-        return result
 
 
 if __name__ == '__main__':
@@ -92,8 +100,12 @@ if __name__ == '__main__':
 
     net = NeuralNet()
 
-    predictions = net.train_model(inputs[:720:2], outputs[:720:2], inputs[720::2], outputs[720::2])
+    net.train_model(inputs[:-100:2], outputs[:-100:2], inputs[-100::2], outputs[-100::2])
 
-    for i, j in zip(predictions, outputs[720::2]):
+    net = NeuralNet()
+
+    predictions = net.predict(inputs[-100::2])
+
+    for i, j in zip(predictions, outputs[-100::2]):
         print(1 / i)
         print(1 / j)

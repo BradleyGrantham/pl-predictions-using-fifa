@@ -1,11 +1,15 @@
+import json
+
 import numpy as np
+from tqdm import tqdm
 
 import constants
 from data_methods import read_player_data, read_match_data, assign_season_to_player, assign_guids,\
-    assign_general_position, assign_season_to_match
+    assign_general_position, assign_season_to_match, get_goals, get_season, get_lineup_names, get_teams, \
+    get_lineup_nationalities, get_lineup_numbers, get_match_odds
 
 
-def lineup_matching(lineup_names, lineup_numbers, lineup_nationalities, team, season, fifa_data):
+def match_lineups_to_fifa_players(lineup_names, lineup_numbers, lineup_nationalities, team, season, fifa_data):
     all_fifa_players = [player['name'] for _, player in fifa_data.items()]
 
     probability_dict = {lineup_name: dict.fromkeys(all_fifa_players, 0) for lineup_name in lineup_names}
@@ -89,7 +93,7 @@ def create_feature_vector_from_players(players):
         else:
             print("Error")
 
-    assert len(goalkeeper) == 1, "Need exactly 1 goalkeeper"
+    assert len(goalkeeper) == 1, "Need exactly 1 goalkeeper, you have {}".format(len(goalkeeper))
     assert len(defence) <= 6, "No more than 6 defenders allowed, there is {}".format(len(defence))
     assert len(midfield) <= 7, "No more than 7 midfielders allowed, there is {}".format(len(midfield))
     assert len(attack) <= 4, "No more than 4 attackers allowed, there is {}".format(len(attack))
@@ -106,61 +110,46 @@ if __name__ == '__main__':
 
     data = read_player_data()
 
-    match_lineups = read_match_data()
-
-    for match in match_lineups:
-        match['info']['season'] = assign_season_to_match(match['info']['date'])
-
-    match_lineups = [match for match in match_lineups if match['info']['season'] != '2017-2018']
-
-    data = assign_guids(data)
-
-    for _, player in data.items():
-        player['general position'] = assign_general_position(player['position'])
-        player['season'] = assign_season_to_player(player['url'])
+    match_data = read_match_data()
 
     feature_vectors = []
     targets = []
 
-    for i, test_match in enumerate(reversed(match_lineups)):
+    errors = []
 
-        # test_match = match_lineups[150]
+    for i, test_match in tqdm(enumerate(reversed(match_data)), desc='Doing the matching...'):
 
-        season = test_match['info']['season']
-        home_lineup_names = test_match['info']['home lineup names']
-        home_team = constants.LINEUP_TO_PLAYER_TEAM_MAPPINGS['ALL'][test_match['info']['home team']]
-        away_lineup_names = test_match['info']['away lineup names']
-        away_team = constants.LINEUP_TO_PLAYER_TEAM_MAPPINGS['ALL'][test_match['info']['away team']]
-        home_lineup_numbers = test_match['info']['home lineup numbers']
-        away_lineup_numbers = test_match['info']['away lineup numbers']
-        home_lineup_nationalities = test_match['info']['home lineup nationalities']
-        away_lineup_nationalities = test_match['info']['away lineup nationalities']
-        home_goals = test_match['info']['home goals']
-        away_goals = test_match['info']['away goals']
-        # home_odds = test_match['info']['home odds']
-        # draw_odds = test_match['info']['draw odds']
-        # away_odds = test_match['info']['away odds']
+        season = get_season(test_match)
+        home_team, away_team = get_teams(test_match)
+        home_goals, away_goals = get_goals(test_match)
+        home_lineup_names, away_lineup_names = get_lineup_names(test_match)
+        home_lineup_numbers, away_lineup_numbers = get_lineup_numbers(test_match)
+        home_lineup_nationalities, away_lineup_nationalities = get_lineup_nationalities(test_match)
+        home_odds, draw_odds, away_odds = get_match_odds(test_match)
 
         print(i, season, "{} vs. {}".format(home_team, away_team))
 
         if len(home_lineup_names) != 11:
             print('error')
 
-        home_players_matched = lineup_matching(home_lineup_names, home_lineup_numbers, home_lineup_nationalities,
-                                               home_team, season, data)
-        away_players_matched = lineup_matching(away_lineup_names, away_lineup_numbers, away_lineup_nationalities,
-                                               away_team, season, data)
+        try:
+            home_players_matched = match_lineups_to_fifa_players(home_lineup_names, home_lineup_numbers, home_lineup_nationalities,
+                                                                 home_team, season, data)
+            away_players_matched = match_lineups_to_fifa_players(away_lineup_names, away_lineup_numbers, away_lineup_nationalities,
+                                                                 away_team, season, data)
 
-        home_feature_vector = create_feature_vector_from_players(home_players_matched)
-        away_feature_vector = create_feature_vector_from_players(away_players_matched)
+            home_feature_vector = create_feature_vector_from_players(home_players_matched)
+            away_feature_vector = create_feature_vector_from_players(away_players_matched)
 
-        feature_vectors.append(home_feature_vector + away_feature_vector)
-        # targets.append([home_odds, draw_odds, away_odds])
-        targets.append(home_goals)
+            feature_vectors.append(home_feature_vector + away_feature_vector)
+            targets.append([home_odds, draw_odds, away_odds])
 
-        feature_vectors.append(away_feature_vector + home_feature_vector)
-        # targets.append([away_odds, draw_odds, home_odds])
-        targets.append(away_goals)
+            feature_vectors.append(away_feature_vector + home_feature_vector)
+            targets.append([away_odds, draw_odds, home_odds])
+        except Exception as exception:
+            print('error with above match')
+            test_match['error'] = exception
+            errors.append(test_match)
 
     feature_vectors = np.array(feature_vectors)
     targets = np.array(targets)
@@ -168,14 +157,7 @@ if __name__ == '__main__':
     np.save('feature_vectors.npy', feature_vectors)
     np.save('targets_odds.npy', targets)
 
+    with open('errors.json', 'w') as jsonfile:
+        json.dump(errors, jsonfile)
+
     print(feature_vectors.shape, targets.shape)
-    # print(i)
-    #     if len(players_matched) != 11:
-    #         print(i)
-    #         print(len(players_matched))
-    #         print(players_matched)
-    #         print(home_lineup_names)
-    #         print(home_lineup_numbers)
-    #         errors.append(1)
-    #         # time.sleep(10)
-    # print(len(errors))

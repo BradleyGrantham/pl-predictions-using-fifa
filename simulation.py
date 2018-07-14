@@ -5,7 +5,7 @@ from tqdm import tqdm
 from data_methods import read_fixtures_data, normalise_features
 from model import NeuralNet
 
-NUMBER_OF_SIMULATIONS = 10000
+NUMBER_OF_SIMULATIONS = 1000000
 
 # cardiff, fulham and wolves are identical to burnley at the moment
 
@@ -57,14 +57,13 @@ def get_match_probabilities(match_fixtures):
     return match_probabilities
 
 
-def run_season(season_fixtures, fixture_probabilities):
-    assert len(season_fixtures) == len(fixture_probabilities), "Each fixture must have it's '1X2 probabilities"
+def run_season(season_fixtures, match_results):
+    assert len(season_fixtures) == len(match_results), "Each fixture must have it's '1X2 probabilities"
     league_points = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
-    for fixture, match_probabilities in zip(season_fixtures, fixture_probabilities):
+
+    for fixture, result in zip(season_fixtures, match_results):
 
         home_team, away_team = fixture['home team'], fixture['away team']
-
-        result = np.random.choice(['1', 'X', '2'], p=match_probabilities)
 
         if result == '1':
             TOTAL_POINTS[home_team] += 3
@@ -110,10 +109,15 @@ def convert_to_pandas(write_to_csv=True, return_df=False):
                                                                                                   'Relegation']).T
 
     if write_to_csv:
-        df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv('./data/results/18-19-league-table-2.csv')
+        df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv('./data/results/18-19-league-table.csv')
 
     if return_df:
         return df.sort_values(by='Points', ascending=False).round(decimals=2)
+
+
+def get_match_results_from_probabilities(match_probabilities):
+    return [np.random.choice(['1', 'X', '2'], size=NUMBER_OF_SIMULATIONS, p=match_probability) for
+            match_probability in match_probabilities]
 
 
 def main():
@@ -124,8 +128,10 @@ def main():
 
     probabilities = get_match_probabilities(fixtures)
 
-    for _ in tqdm(range(NUMBER_OF_SIMULATIONS), desc='running_simulations'):
-        run_season(fixtures, probabilities)
+    results = get_match_results_from_probabilities(probabilities)
+
+    for i in tqdm(range(NUMBER_OF_SIMULATIONS), desc='running_simulations'):
+        run_season(fixtures, [x[i] for x in results])
 
     normalise_season_values()
 

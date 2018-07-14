@@ -106,4 +106,4 @@ if __name__ == '__main__':
                                                                                                   'Top 4',
                                                                                                   'Relegation']).T
 
-    df.sort_values(by='Points', ascending=False).round(decimals=2)to_csv('./results/18-19-league-table.csv')
+    df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv('./results/18-19-league-table.csv')

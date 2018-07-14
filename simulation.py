@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from slugify import slugify
 
 from data_methods import read_fixtures_data, normalise_features
 from model import NeuralNet
 
-NUMBER_OF_SIMULATIONS = 1000
+NUMBER_OF_SIMULATIONS = 10000
 
-# cardiff fulham and wolves are identical to burnley at the moment
+# cardiff, fulham and wolves are identical to burnley at the moment
 
 PREDICTED_LINEUPS = {'afc-bournemouth': np.array([80, 76, 75, 77, 78, 75, 0, 75, 73, 75, 0, 0, 0, 0, 77, 69, 0, 0]),
                      'arsenal': np.array([84, 81, 83, 73, 0, 0, 0, 68, 82, 84, 77, 87, 76, 0, 87, 0, 0, 0]),
@@ -41,56 +40,58 @@ LEAGUE_WINS = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
 RELEGATION = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
 TOP_4 = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
 
-if __name__ == '__main__':
 
-    fixtures = read_fixtures_data()
-
-    for k, v in PREDICTED_LINEUPS.items():
-        PREDICTED_LINEUPS[k] = normalise_features(v)
+def get_match_probabilities(match_fixtures):
+    feature_vectors = []
 
     net = NeuralNet()
-    probabilities = []
 
-    for fixture in tqdm(fixtures, desc='Getting match probabilities...'):
+    for fixture in tqdm(match_fixtures, desc='Getting match probabilities...'):
         home_team, away_team = fixture['home team'], fixture['away team']
-        feature_vector = np.hstack((PREDICTED_LINEUPS[home_team], PREDICTED_LINEUPS[away_team])).reshape((1, 36))
+        feature_vectors.append(np.hstack((PREDICTED_LINEUPS[home_team], PREDICTED_LINEUPS[away_team])).reshape((1, 36)))
 
-        probabilities.append(np.squeeze(net.predict(feature_vector)))
+    predictions = net.predict(np.vstack((x for x in feature_vectors)))
 
-    for _ in tqdm(range(NUMBER_OF_SIMULATIONS), desc='running_simulations'):
-        league_points = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
+    match_probabilities = [x for x in predictions]
 
-        for fixture, match_probabilities in zip(fixtures, probabilities):
+    return match_probabilities
 
-            home_team, away_team = fixture['home team'], fixture['away team']
 
-            result = np.random.choice(['1', 'X', '2'], p=match_probabilities)
+def run_season(season_fixtures, fixture_probabilities):
+    assert len(season_fixtures) == len(fixture_probabilities), "Each fixture must have it's '1X2 probabilities"
+    league_points = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
+    for fixture, match_probabilities in zip(season_fixtures, fixture_probabilities):
 
-            if result == '1':
-                TOTAL_POINTS[home_team] += 3
-                league_points[home_team] += 3
-                WINS[home_team] += 1
-                LOSSES[away_team] += 1
-            elif result == 'X':
-                TOTAL_POINTS[home_team] += 1
-                TOTAL_POINTS[away_team] += 1
-                league_points[home_team] += 1
-                league_points[away_team] += 1
-                DRAWS[home_team] += 1
-                DRAWS[away_team] += 1
-            elif result == '2':
-                TOTAL_POINTS[away_team] += 3
-                league_points[away_team] += 3
-                WINS[away_team] += 1
-                LOSSES[home_team] += 1
+        home_team, away_team = fixture['home team'], fixture['away team']
 
-        league_positions = sorted(league_points.items(), key=lambda x: x[1], reverse=True)
-        LEAGUE_WINS[league_positions[0][0]] += 1
-        for team, points in league_positions[:4]:
-            TOP_4[team] += 1
-        for team, points in league_positions[-3:]:
-            RELEGATION[team] += 1
+        result = np.random.choice(['1', 'X', '2'], p=match_probabilities)
 
+        if result == '1':
+            TOTAL_POINTS[home_team] += 3
+            league_points[home_team] += 3
+            WINS[home_team] += 1
+            LOSSES[away_team] += 1
+        elif result == 'X':
+            TOTAL_POINTS[home_team] += 1
+            TOTAL_POINTS[away_team] += 1
+            league_points[home_team] += 1
+            league_points[away_team] += 1
+            DRAWS[home_team] += 1
+            DRAWS[away_team] += 1
+        elif result == '2':
+            TOTAL_POINTS[away_team] += 3
+            league_points[away_team] += 3
+            WINS[away_team] += 1
+            LOSSES[home_team] += 1
+    league_positions = sorted(league_points.items(), key=lambda x: x[1], reverse=True)
+    LEAGUE_WINS[league_positions[0][0]] += 1
+    for team, points in league_positions[:4]:
+        TOP_4[team] += 1
+    for team, points in league_positions[-3:]:
+        RELEGATION[team] += 1
+
+
+def normalise_season_values():
     for k in TOTAL_POINTS.keys():
         TOTAL_POINTS[k] = TOTAL_POINTS[k] / NUMBER_OF_SIMULATIONS
         WINS[k] = WINS[k] / NUMBER_OF_SIMULATIONS
@@ -100,10 +101,37 @@ if __name__ == '__main__':
         TOP_4[k] = TOP_4[k] / NUMBER_OF_SIMULATIONS
         RELEGATION[k] = RELEGATION[k] / NUMBER_OF_SIMULATIONS
 
+
+def convert_to_pandas(write_to_csv=True, return_df=False):
     df = pd.DataFrame([TOTAL_POINTS, WINS, DRAWS, LOSSES, LEAGUE_WINS, TOP_4, RELEGATION], index=['Points', 'Wins',
                                                                                                   'Draws', 'Losses',
                                                                                                   '1st Place',
                                                                                                   'Top 4',
                                                                                                   'Relegation']).T
 
-    df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv('./results/18-19-league-table.csv')
+    if write_to_csv:
+        df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv('./data/results/18-19-league-table-2.csv')
+
+    if return_df:
+        return df.sort_values(by='Points', ascending=False).round(decimals=2)
+
+
+def main():
+    fixtures = read_fixtures_data()
+
+    for k, v in PREDICTED_LINEUPS.items():
+        PREDICTED_LINEUPS[k] = normalise_features(v)
+
+    probabilities = get_match_probabilities(fixtures)
+
+    for _ in tqdm(range(NUMBER_OF_SIMULATIONS), desc='running_simulations'):
+        run_season(fixtures, probabilities)
+
+    normalise_season_values()
+
+    convert_to_pandas()
+
+
+if __name__ == '__main__':
+    main()
+

@@ -90,9 +90,9 @@ def main():
 
         feature_vector = normalise_features(feature_vector)
 
-        probabilties = net.predict(feature_vector)
+        probabilities = net.predict(feature_vector)
 
-        pred_home_odds, pred_draw_odds, pred_away_odds = [1 / x for x in probabilties[0]]
+        pred_home_odds, pred_draw_odds, pred_away_odds = [1 / x for x in probabilities[0]]
 
         home_odds, draw_odds, away_odds = match['info']['home odds'], match['info']['draw odds'], match['info'][
             'away odds']

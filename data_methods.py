@@ -48,13 +48,25 @@ def read_match_data(season=None, sort=True):
     return data
 
 
+def read_fixtures_data():
+    with open('./crawler/fixtures.json') as jsonfile:
+        fixtures = json.load(jsonfile)
+
+    for fixture in fixtures:
+        fixture['datetime'] = convert_date_to_datetime_object(fixture['date'], string_format='%d.%m.%Y')
+
+    fixtures = sorted(fixtures, key=lambda x: x['datetime'])
+
+    return fixtures
+
+
 def normalise_features(vector):
     assert isinstance(vector, np.ndarray)
     return ((vector - 50) / (100 - 50)).clip(min=0)
 
 
-def convert_date_to_datetime_object(date):
-    return datetime.datetime.strptime(date, '%d %B %Y')
+def convert_date_to_datetime_object(date, string_format='%d %B %Y'):
+    return datetime.datetime.strptime(date, string_format)
 
 
 def assign_season_to_match(date):

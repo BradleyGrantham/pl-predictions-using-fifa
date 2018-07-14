@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     errors = []
 
-    for i, test_match in tqdm(enumerate(reversed(match_data)), desc='Doing the matching...'):
+    for i, test_match in enumerate(reversed(match_data)):
 
         season = get_season(test_match)
         home_team, away_team = get_teams(test_match)
@@ -141,6 +141,10 @@ if __name__ == '__main__':
             home_feature_vector = create_feature_vector_from_players(home_players_matched)
             away_feature_vector = create_feature_vector_from_players(away_players_matched)
 
+            if i > 80:
+                print(home_team, home_feature_vector)
+                print(away_team, away_feature_vector)
+
             feature_vectors.append(home_feature_vector + away_feature_vector)
             targets.append([home_odds, draw_odds, away_odds])
 
@@ -154,8 +158,8 @@ if __name__ == '__main__':
     feature_vectors = np.array(feature_vectors)
     targets = np.array(targets)
 
-    np.save('feature_vectors.npy', feature_vectors)
-    np.save('targets_odds.npy', targets)
+    # np.save('feature_vectors.npy', feature_vectors)
+    # np.save('targets_odds.npy', targets)
 
     with open('errors.json', 'w') as jsonfile:
         json.dump(errors, jsonfile)

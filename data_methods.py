@@ -1,6 +1,7 @@
 import json
 import datetime
 
+import numpy as np
 from slugify import slugify
 
 import constants
@@ -45,6 +46,11 @@ def read_match_data(season=None, sort=True):
     assert data, "No match lineups to return, have you selected a valid season?"
 
     return data
+
+
+def normalise_features(vector):
+    assert isinstance(vector, np.ndarray)
+    return ((vector - 50) / (100 - 50)).clip(min=0)
 
 
 def convert_date_to_datetime_object(date):

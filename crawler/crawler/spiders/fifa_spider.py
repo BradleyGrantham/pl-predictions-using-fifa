@@ -197,3 +197,29 @@ class FifaIndexTeamScraper(scrapy.Spider):
                 'nationality': nationality,
                 'url': response.request.url
             }
+
+
+class FixturesSpider(scrapy.Spider):
+    name = "fixtures"
+
+    # TODO - want the other names - not full names
+
+    def start_requests(self):
+        urls = [
+            'http://www.betstudy.com/soccer-stats/c/england/premier-league/d/fixtures/'
+        ]
+        for url in urls:
+            yield scrapy.Request(url=url, callback=self.parse_fixtures)
+
+    def parse_fixtures(self, response):
+        for fixture in response.css('tr')[1:]:
+            home_team = fixture.css('td.right-align a::text').extract_first()
+            away_team = fixture.css('td.left-align a::text').extract_first()
+            date = fixture.css('td::text').extract_first()
+            yield {
+                'date': date,
+                'home team': slugify(home_team),
+                'away team': slugify(away_team),
+                'url': response.request.url
+            }
+

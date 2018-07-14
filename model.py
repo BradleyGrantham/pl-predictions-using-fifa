@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
+from data_methods import normalise_features
+
 
 class NeuralNet:
     def __init__(self, hidden_nodes=8, keep_prob=1.0, learning_rate=0.001):
@@ -94,9 +96,7 @@ if __name__ == '__main__':
     np.random.seed(8)
 
     inputs = np.load('feature_vectors.npy')
-    max_input = 100  # np.max(inputs)
-    min_input = 50  # np.min(inputs[np.nonzero(inputs)])
-    inputs = ((inputs - min_input) / (max_input - min_input)).clip(min=0)
+    inputs = normalise_features(inputs)
     outputs = np.load('targets_odds.npy').reshape(-1, 3)
     outputs = 1 / outputs
 

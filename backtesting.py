@@ -7,8 +7,7 @@ import os
 import numpy as np
 
 import constants
-from data_methods import read_match_data, read_player_data, convert_date_to_datetime_object, assign_season_to_match, \
-    assign_guids, assign_season_to_player, assign_general_position
+from data_methods import read_match_data, read_player_data, normalise_features
 from matching import match_lineups_to_fifa_players, create_feature_vector_from_players
 from model import NeuralNet
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -89,7 +88,7 @@ def main():
 
         feature_vector = np.array(home_feature_vector + away_feature_vector).reshape(-1, 36)
 
-        feature_vector = ((feature_vector - 50) / (100 - 50)).clip(min=0)
+        feature_vector = normalise_features(feature_vector)
 
         probabilties = net.predict(feature_vector)
 

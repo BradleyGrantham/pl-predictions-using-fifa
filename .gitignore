@@ -2,6 +2,7 @@
 *.ipynb
 .vscode/
 scratch/
+tf-log/
 
 
 # Created by .ignore support plugin (hsz.mobi)

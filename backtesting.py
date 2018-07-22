@@ -66,6 +66,10 @@ def main():
 
     net = NeuralNet()
 
+    bank =[100]
+
+    all_odds = []
+
     for match in match_data:
 
         print(match['info']['date'], match['info']['home team'], match['info']['away team'])
@@ -97,7 +101,10 @@ def main():
         home_odds, draw_odds, away_odds = match['info']['home odds'], match['info']['draw odds'], match['info'][
             'away odds']
 
-        if pred_home_odds < home_odds < 3.2 and 0.05 <= home_odds - pred_home_odds <= 0.4:
+        all_odds.append((pred_home_odds, home_odds))
+        all_odds.append((pred_away_odds, away_odds))
+
+        if pred_home_odds < home_odds < 3.2 and 0.02 <= probabilities[0][0] - 1/home_odds:
             stake = calculate_stake(home_odds, probability=1 / pred_home_odds, method='kelly') * bet_tracker.bankroll
             profit = stake * home_odds - stake
             bet = Bet(true_odds=home_odds, predicted_odds=pred_home_odds, stake=stake, profit=profit, match=match,
@@ -107,7 +114,8 @@ def main():
                 bet_tracker.bet_won()
             else:
                 bet_tracker.bet_lost()
-        elif pred_away_odds < away_odds < 3.2 and 0.05 <= away_odds - pred_away_odds >= 0.4:
+            bank.append(bet_tracker.bankroll)
+        elif pred_away_odds < away_odds < 3.2 and 0.02 <= probabilities[0][2] - 1/away_odds:
             stake = calculate_stake(away_odds, probability=1 / pred_away_odds, method='kelly') * bet_tracker.bankroll
             profit = stake * away_odds - stake
             bet = Bet(true_odds=away_odds, predicted_odds=pred_away_odds, stake=stake, profit=profit, match=match,
@@ -117,9 +125,10 @@ def main():
                 bet_tracker.bet_won()
             else:
                 bet_tracker.bet_lost()
+            bank.append(bet_tracker.bankroll)
 
-    return bet_tracker
+    return bet_tracker, bank, all_odds
 
 
 if __name__ == '__main__':
-    tracker = main()
+    tracker, bankroll, odds = main()

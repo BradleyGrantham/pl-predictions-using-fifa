@@ -57,7 +57,7 @@ class NeuralNet:
 
             sess.run(tf.global_variables_initializer())
 
-            for i in range(50000):
+            for i in range(10000):
 
                 feed_dict = {self.input: X, self.target: y, self.keep_prob: 0.8}
 
@@ -78,8 +78,8 @@ class NeuralNet:
     def predict(self, X, model_name='deep'):
 
         with tf.Session() as sess:
-            saver = tf.train.import_meta_graph('./deep-models/' + model_name + '.meta')
-            saver.restore(sess, './deep-models/' + model_name)
+            saver = tf.train.import_meta_graph('./deep-models-all/' + model_name + '.meta')
+            saver.restore(sess, './deep-models-all/' + model_name)
             graph = tf.get_default_graph()
             input = graph.get_tensor_by_name('input:0')
             keep_prob = graph.get_tensor_by_name('keep_prob:0')
@@ -95,19 +95,19 @@ if __name__ == '__main__':
     tf.set_random_seed(8)
     np.random.seed(8)
 
-    inputs = np.load('feature_vectors.npy')
+    inputs = np.load('feature_vectors_all.npy')
     inputs = normalise_features(inputs)
-    outputs = np.load('targets_odds.npy').reshape(-1, 3)
-    outputs = 1 / outputs
+    outputs = np.load('targets_odds_goals.npy').reshape(-1, 2)[:-3]
+    #outputs = 1 / outputs
 
     net = NeuralNet()
 
-    net.train_model(inputs[:-100:2], outputs[:-100:2], inputs[-100::2], outputs[-100::2])
+    net.train_model(inputs[:-50], outputs[:-50], inputs[-50:], outputs[-50:])
 
     net = NeuralNet()
 
-    predictions = net.predict(inputs[-100::2])
+    predictions = net.predict(inputs[-50:])
 
-    for i, j in zip(predictions, outputs[-100::2]):
-        print(1 / i)
-        print(1 / j)
+    for i, j in zip(predictions, outputs[-50:]):
+        print(i)
+        print(j)

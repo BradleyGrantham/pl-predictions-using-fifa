@@ -152,10 +152,10 @@ if __name__ == '__main__':
     feature_vectors = np.array(feature_vectors)
     targets = np.array(targets)
 
-    np.save('feature_vectors.npy', feature_vectors)
-    np.save('targets_odds.npy', targets)
+    np.save('feature_vectors_all.npy', feature_vectors)
+    np.save('targets_odds_all.npy', targets)
 
-    with open('errors.json', 'w') as jsonfile:
+    with open('errors_all.json', 'w') as jsonfile:
         json.dump(errors, jsonfile)
 
     print(feature_vectors.shape, targets.shape)

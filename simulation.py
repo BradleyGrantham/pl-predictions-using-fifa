@@ -14,23 +14,23 @@ PREDICTED_LINEUPS = {'afc-bournemouth': np.array([80, 76, 75, 77, 78, 75, 0, 75,
                      'brighton-hove-albion': np.array(
                          [78, 75, 74, 76, 76, 0, 0, 72, 76, 77, 78, 78, 0, 0, 74, 0, 0, 0]),
                      'burnley': np.array([78, 78, 76, 79, 80, 0, 0, 78, 78, 74, 75, 77, 0, 0, 77, 0, 0, 0]),
-                     'cardiff-city': np.array([78, 78, 76, 79, 80, 0, 0, 78, 78, 74, 75, 77, 0, 0, 77, 0, 0, 0]),
-                     'chelsea': np.array([89, 79, 82, 82, 82, 86, 0, 85, 88, 0, 0, 0, 0, 0, 82, 84, 91, 0]),
+                     'cardiff-city': np.array([72, 74, 75, 75, 71, 0, 0, 72, 74, 74, 0, 0, 0, 0, 72, 75, 75, 0]),
+                     'chelsea': np.array([82, 79, 82, 82, 82, 86, 0, 85, 88, 0, 0, 0, 0, 0, 91, 84, 84, 0]),
                      'crystal-palace': np.array([73, 75, 74, 78, 72, 65, 0, 78, 78, 76, 0, 0, 0, 0, 79, 71, 0, 0]),
                      'everton': np.array([80, 81, 80, 79, 80, 0, 0, 74, 81, 80, 79, 77, 0, 0, 80, 0, 0, 0]),
-                     'fulham': np.array([78, 78, 76, 79, 80, 0, 0, 78, 78, 74, 75, 77, 0, 0, 77, 0, 0, 0]),
+                     'fulham': np.array([73, 73, 69, 71, 75, 0, 0, 74, 79, 75, 0, 0, 0, 0, 76, 79, 81, 0]),
                      'huddersfield-town': np.array([75, 73, 76, 75, 76, 0, 0, 71, 75, 73, 70, 0, 0, 0, 69, 76, 0, 0]),
                      'leicester-city': np.array([82, 75, 73, 79, 76, 0, 0, 80, 84, 81, 75, 0, 0, 0, 82, 77, 0, 0]),
                      'liverpool': np.array([80, 75, 79, 80, 84, 0, 0, 81, 81, 80, 0, 0, 0, 0, 85, 87, 84, 0]),
                      'manchester-city': np.array([85, 84, 85, 83, 70, 0, 0, 85, 91, 89, 0, 0, 0, 0, 84, 89, 85, 0]),
-                     'manchester-united': np.array([91, 83, 79, 81, 78, 0, 0, 85, 68, 88, 81, 0, 0, 0, 86, 88, 0, 0]),
+                     'manchester-united': np.array([91, 83, 79, 81, 78, 0, 0, 85, 82, 88, 81, 0, 0, 0, 86, 88, 0, 0]),
                      'newcastle-united': np.array([75, 76, 74, 78, 78, 0, 0, 78, 76, 74, 75, 0, 0, 0, 75, 75, 0, 0]),
                      'southampton': np.array([76, 78, 79, 71, 76, 0, 0, 77, 77, 76, 79, 76, 0, 0, 75, 0, 0, 0]),
                      'tottenham-hotspur': np.array([88, 81, 81, 82, 86, 0, 0, 81, 88, 84, 84, 84, 0, 0, 88, 0, 0, 0]),
                      'watford': np.array([80, 76, 77, 76, 74, 76, 0, 76, 80, 79, 0, 0, 0, 0, 77, 76, 0, 0]),
                      'west-ham-united': np.array([78, 76, 74, 75, 78, 0, 0, 76, 76, 81, 81, 0, 0, 0, 79, 81, 0, 0]),
                      'wolverhampton-wanderers': np.array(
-                         [78, 78, 76, 79, 80, 0, 0, 78, 78, 74, 75, 77, 0, 0, 77, 0, 0, 0])}
+                         [72, 74, 72, 74, 78, 74, 0, 77, 82, 0, 0, 0, 0, 0, 75, 82, 78, 0])}
 
 TOTAL_POINTS = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
 WINS = dict.fromkeys(PREDICTED_LINEUPS.keys(), 0)
@@ -109,7 +109,8 @@ def convert_to_pandas(write_to_csv=True, return_df=False):
                                                                                                   'Relegation']).T
 
     if write_to_csv:
-        df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv('./data/results/18-19-league-table.csv')
+        df.sort_values(by='Points', ascending=False).round(decimals=2).to_csv(
+            './data/results/18-19-league-table-trained-on-all.csv')
 
     if return_df:
         return df.sort_values(by='Points', ascending=False).round(decimals=2)

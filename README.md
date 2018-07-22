@@ -1,6 +1,4 @@
-# Fifa stats scraper
+# Premier League predictions using Fifa Ratings
 
-To run the crawler type `scrapy crawl fifastats -o data.json` in the
-`crawler` directory
-
-To visualise the neural network, run `tensorboard --logdir log/`
+See the blog post for more information:
+https://medium.com/@bradleygrantham/predicting-premier-league-odds-from-ea-player-bfdb52597392

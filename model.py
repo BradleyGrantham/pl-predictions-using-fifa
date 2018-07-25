@@ -75,11 +75,11 @@ class NeuralNet:
                         best_val_loss = val_loss
                         saver.save(sess, './deep-models/deep')
 
-    def predict(self, X, model_name='deep'):
+    def predict(self, X, model_name):
 
         with tf.Session() as sess:
-            saver = tf.train.import_meta_graph('./deep-models-all/' + model_name + '.meta')
-            saver.restore(sess, './deep-models-all/' + model_name)
+            saver = tf.train.import_meta_graph(model_name + '.meta')
+            saver.restore(sess, model_name)
             graph = tf.get_default_graph()
             input = graph.get_tensor_by_name('input:0')
             keep_prob = graph.get_tensor_by_name('keep_prob:0')

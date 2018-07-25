@@ -50,7 +50,7 @@ def get_match_probabilities(match_fixtures):
         home_team, away_team = fixture['home team'], fixture['away team']
         feature_vectors.append(np.hstack((PREDICTED_LINEUPS[home_team], PREDICTED_LINEUPS[away_team])).reshape((1, 36)))
 
-    predictions = net.predict(np.vstack((x for x in feature_vectors)))
+    predictions = net.predict(np.vstack((x for x in feature_vectors)), model_name='deep-models-all/deep')
 
     match_probabilities = [x for x in predictions]
 

@@ -94,7 +94,7 @@ def main():
 
         feature_vector = normalise_features(feature_vector)
 
-        probabilities = net.predict(feature_vector)
+        probabilities = net.predict(feature_vector, model_name='deep-models-backtest/deep')
 
         pred_home_odds, pred_draw_odds, pred_away_odds = [1 / x for x in probabilities[0]]
 

@@ -48,8 +48,8 @@ def read_match_data(season=None, sort=True):
     return data
 
 
-def read_fixtures_data():
-    with open('./crawler/fixtures.json') as jsonfile:
+def read_fixtures_data(filepath='./crawler/fixtures.json'):
+    with open(filepath) as jsonfile:
         fixtures = json.load(jsonfile)
 
     for fixture in fixtures:

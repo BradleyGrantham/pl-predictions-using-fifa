@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from data_methods import normalise_features
+from fifa_ratings_predictor.data_methods import normalise_features
 
 
 class NeuralNet:

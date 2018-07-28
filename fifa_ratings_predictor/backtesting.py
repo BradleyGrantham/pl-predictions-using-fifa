@@ -6,10 +6,10 @@ import os
 
 import numpy as np
 
-import constants
-from data_methods import read_match_data, read_player_data, normalise_features
-from matching import match_lineups_to_fifa_players, create_feature_vector_from_players
-from model import NeuralNet
+import fifa_ratings_predictor.constants as constants
+from fifa_ratings_predictor.data_methods import read_match_data, read_player_data, normalise_features
+from fifa_ratings_predictor.matching import match_lineups_to_fifa_players, create_feature_vector_from_players
+from fifa_ratings_predictor.model import NeuralNet
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 Bet = namedtuple('Bet', ['true_odds', 'predicted_odds', 'stake', 'type', 'profit', 'match'])

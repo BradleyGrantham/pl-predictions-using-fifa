@@ -3,7 +3,19 @@
 .vscode/
 scratch/
 tf-log/
-
+./fifa_ratings_predictor/.idea
+./fifa_ratings_predictor/.ipynb_checkpoints
+./fifa_ratings_predictor/data
+./fifa_ratings_predictor/deep-models*
+./fifa_ratings_predictor/models
+./fifa_ratings_predictor/scratch
+*.npy
+*.html
+*.json
+*.png
+*.ipynb
+*.egg-info
+*.pkl
 
 # Created by .ignore support plugin (hsz.mobi)
 ### JetBrains template

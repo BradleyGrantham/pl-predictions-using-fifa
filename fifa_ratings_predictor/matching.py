@@ -3,8 +3,9 @@ import json
 import numpy as np
 from tqdm import tqdm
 
-import constants
-from data_methods import read_player_data, read_match_data, assign_season_to_player, assign_guids,\
+import fifa_ratings_predictor.constants as constants
+from fifa_ratings_predictor.data_methods import read_player_data, read_match_data, assign_season_to_player, \
+    assign_guids,\
     assign_general_position, assign_season_to_match, get_goals, get_season, get_lineup_names, get_teams, \
     get_lineup_nationalities, get_lineup_numbers, get_match_odds
 

@@ -37,6 +37,8 @@ use
 ```
 scrapy crawl <spider name> -o <output file>
 ```
+It goes without saying that if you do use these crawlers, please don't
+bombard the sites with a stupid amount of requests - *scrape responsibly.*
 
 I have deliberately left all of the data off of the repo because a) it's
 not really my data and b) it's not good practice to have data on a repo.

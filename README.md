@@ -73,8 +73,6 @@ Get in contact on [Twitter](https://twitter.com/BradleyGrantham) if you have any
 
 [**Bradley Grantham**](https://twitter.com/BradleyGrantham)
 
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
-
 ## License
 
 This project is licensed under the MPL-2.0 License - see the [LICENSE](LICENSE) file for details

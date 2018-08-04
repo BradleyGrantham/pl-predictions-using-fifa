@@ -28,7 +28,7 @@ def read_player_data(season=None):
 
 
 def read_match_data(season=None, sort=True, league='E0'):
-    with open('./data/lineup-data/' + league + '/match-lineups-with-odds.json') as json_file:
+    with open('./data/lineup-data/' + league + '/match-lineups.json') as json_file:
         data = json.load(json_file)
 
     for match in data:

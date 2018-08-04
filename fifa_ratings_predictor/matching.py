@@ -10,20 +10,27 @@ from fifa_ratings_predictor.data_methods import read_player_data, read_match_dat
     get_lineup_nationalities, get_lineup_numbers, get_match_odds, assign_odds_to_match, read_all_football_data
 
 
-def match_lineups_to_fifa_players(lineup_names, lineup_numbers, lineup_nationalities, team, season, fifa_data):
+def match_lineups_to_fifa_players(lineup_names, raw_names, lineup_numbers, lineup_nationalities, team, season, \
+                                                         fifa_data, cached):
     all_fifa_players = [player['name'] for _, player in fifa_data.items()]
 
-    probability_dict = {lineup_name: dict.fromkeys(all_fifa_players, 0) for lineup_name in lineup_names}
+    probability_dict = {raw_name: dict.fromkeys(all_fifa_players, 0) for raw_name in raw_names}
 
-    for lineup_name, lineup_number, lineup_nationality in zip(lineup_names, lineup_numbers,
+    for lineup_name, raw_name, lineup_number, lineup_nationality in zip(lineup_names, raw_names, lineup_numbers,
                                                               lineup_nationalities):
 
-        for guid, player in fifa_data.items():
-            probability_dict[lineup_name][guid] = assign_probability(player, lineup_name, lineup_number,
-                                                                     lineup_nationality,
-                                                                     team, season)
+        try:
+            probability_dict[raw_name][cached[raw_name]] = 1.0
+        except KeyError:
+
+            for guid, player in fifa_data.items():
+                probability_dict[raw_name][guid] = assign_probability(player, lineup_name, lineup_number,
+                                                                         lineup_nationality,
+                                                                         team, season)
 
     max_prob_dict = {max(v, key=v.get): k for k, v in probability_dict.items()}
+
+    players_to_cache = {v: k for k, v in max_prob_dict.items()}
 
     assert len(max_prob_dict.keys()) == 11, 'We need 11 players, retrieved {}'.format(len(max_prob_dict.keys()))
 
@@ -35,7 +42,9 @@ def match_lineups_to_fifa_players(lineup_names, lineup_numbers, lineup_nationali
 
     x = [fifa_data[guid] for guid, _ in max_prob_dict.items()]
 
-    return x
+    cached = {**cached, **players_to_cache}
+
+    return x, cached
 
 
 def assign_probability(player, name, number, nationality, team, season):
@@ -111,7 +120,7 @@ if __name__ == '__main__':
 
     data = read_player_data()
 
-    match_data = read_match_data(league='SP1', season='2016-2017')
+    match_data = read_match_data(league='SP1', season='2013-2014')
 
     football_data = read_all_football_data(league='SP1')
 
@@ -122,12 +131,16 @@ if __name__ == '__main__':
 
     errors = []
 
+    cached_players = {}
+
     for i, test_match in enumerate(reversed(match_data)):
 
         season = get_season(test_match)
         home_team, away_team = get_teams(test_match)
         home_goals, away_goals = get_goals(test_match)
         home_lineup_names, away_lineup_names = get_lineup_names(test_match)
+        home_lineup_raw_names, away_lineup_raw_names = test_match['info']['home lineup raw names'], test_match[
+            'info']['away lineup raw names']
         home_lineup_numbers, away_lineup_numbers = get_lineup_numbers(test_match)
         home_lineup_nationalities, away_lineup_nationalities = get_lineup_nationalities(test_match)
         home_odds, draw_odds, away_odds = get_match_odds(test_match)
@@ -138,10 +151,16 @@ if __name__ == '__main__':
             print('error')
 
         try:
-            home_players_matched = match_lineups_to_fifa_players(home_lineup_names, home_lineup_numbers, home_lineup_nationalities,
-                                                                 home_team, season, data)
-            away_players_matched = match_lineups_to_fifa_players(away_lineup_names, away_lineup_numbers, away_lineup_nationalities,
-                                                                 away_team, season, data)
+            home_players_matched, cached_players = match_lineups_to_fifa_players(home_lineup_names,
+                                                                                 home_lineup_raw_names,
+                                                                                 home_lineup_numbers,
+                                                                  home_lineup_nationalities,
+                                                                 home_team, season, data, cached_players)
+            away_players_matched, cached_players = match_lineups_to_fifa_players(away_lineup_names,
+                                                                                 away_lineup_raw_names,
+                                                                                 away_lineup_numbers,
+                                                                  away_lineup_nationalities,
+                                                                 away_team, season, data, cached_players)
 
             home_feature_vector = create_feature_vector_from_players(home_players_matched)
             away_feature_vector = create_feature_vector_from_players(away_players_matched)
@@ -158,10 +177,12 @@ if __name__ == '__main__':
     feature_vectors = np.array(feature_vectors)
     targets = np.array(targets)
 
-    np.save('SP1_feature_vectors_all.npy', feature_vectors)
-    np.save('SP1targets_odds_all.npy', targets)
+    np.save('feature-vectors-13-14.npy', feature_vectors)
+    np.save('targets-13-14.npy', targets)
 
-    with open('errors_SP1-14-15.json', 'w') as jsonfile:
-        json.dump(errors, jsonfile)
+    # with open('errors_SP1-14-15.json', 'w') as jsonfile:
+    #     json.dump(errors, jsonfile)
 
     print(feature_vectors.shape, targets.shape)
+
+    print(len(errors))

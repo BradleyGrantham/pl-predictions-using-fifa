@@ -154,5 +154,5 @@ class SeasonSimulator:
 
 if __name__ == '__main__':
     fixtures2 = read_fixtures_data()
-    sim = SeasonSimulator(fixtures2, PREDICTED_LINEUPS2, NUMBER_OF_SIMULATIONS2)
-    d = sim.simulate_monte_carlo()
+    sim = SeasonSimulator(fixtures2, PREDICTED_LINEUPS2, model_path='./deep-models-all/deep')
+    print(sim.simulate_monte_carlo(1000))

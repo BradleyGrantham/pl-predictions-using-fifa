@@ -7,7 +7,7 @@ import fifa_ratings_predictor.constants as constants
 from fifa_ratings_predictor.data_methods import read_player_data, read_match_data, assign_season_to_player, \
     assign_guids,\
     assign_general_position, assign_season_to_match, get_goals, get_season, get_lineup_names, get_teams, \
-    get_lineup_nationalities, get_lineup_numbers, get_match_odds
+    get_lineup_nationalities, get_lineup_numbers, get_match_odds, assign_odds_to_match, read_all_football_data
 
 
 def match_lineups_to_fifa_players(lineup_names, lineup_numbers, lineup_nationalities, team, season, fifa_data):
@@ -111,7 +111,11 @@ if __name__ == '__main__':
 
     data = read_player_data()
 
-    match_data = read_match_data()
+    match_data = read_match_data(league='SP1', season='2016-2017')
+
+    football_data = read_all_football_data(league='SP1')
+
+    match_data = assign_odds_to_match(match_data, football_data)
 
     feature_vectors = []
     targets = []
@@ -147,16 +151,17 @@ if __name__ == '__main__':
 
         except Exception as exception:
             print('error with above match')
+            print(exception)
             test_match['error'] = exception
             errors.append(test_match)
 
     feature_vectors = np.array(feature_vectors)
     targets = np.array(targets)
 
-    np.save('feature_vectors_all.npy', feature_vectors)
-    np.save('targets_odds_all.npy', targets)
+    np.save('SP1_feature_vectors_all.npy', feature_vectors)
+    np.save('SP1targets_odds_all.npy', targets)
 
-    with open('errors_all.json', 'w') as jsonfile:
+    with open('errors_SP1-14-15.json', 'w') as jsonfile:
         json.dump(errors, jsonfile)
 
     print(feature_vectors.shape, targets.shape)

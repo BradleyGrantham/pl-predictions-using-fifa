@@ -43,11 +43,11 @@ class NeuralNet:
 
     @staticmethod
     def init_saver(sess):
-        writer = tf.summary.FileWriter('./tf-log/', sess.graph)
+        writer = tf.summary.FileWriter('./tf-log-SP1/', sess.graph)
         saver = tf.train.Saver(max_to_keep=1)
         return writer, saver
 
-    def train_model(self, X, y, X_val, y_val):
+    def train_model(self, X, y, X_val, y_val, model_name):
 
         best_val_loss = 0.038
 
@@ -57,7 +57,7 @@ class NeuralNet:
 
             sess.run(tf.global_variables_initializer())
 
-            for i in range(10000):
+            for i in range(20000):
 
                 feed_dict = {self.input: X, self.target: y, self.keep_prob: 0.8}
 
@@ -73,7 +73,7 @@ class NeuralNet:
                     print(i, current_loss, val_loss)
                     if val_loss < best_val_loss:
                         best_val_loss = val_loss
-                        saver.save(sess, './deep-models/deep')
+                        saver.save(sess, model_name)
 
     def predict(self, X, model_name):
 
@@ -95,18 +95,25 @@ if __name__ == '__main__':
     tf.set_random_seed(8)
     np.random.seed(8)
 
-    inputs = np.load('feature_vectors_all.npy')
+    inputs = np.vstack((np.load('./data/lineup-data/SP1/processed-numpy-arrays/feature-vectors-13-14.npy'),
+                        np.load('./data/lineup-data/SP1/processed-numpy-arrays/feature-vectors-14-15.npy'),
+                        np.load('./data/lineup-data/SP1/processed-numpy-arrays/feature-vectors-15-16.npy'),
+                        np.load('./data/lineup-data/SP1/processed-numpy-arrays/feature-vectors-16-17.npy')))
     inputs = normalise_features(inputs)
-    outputs = np.load('targets_odds_goals.npy').reshape(-1, 2)[:-3]
-    #outputs = 1 / outputs
+    outputs = np.vstack((np.load('./data/lineup-data/SP1/processed-numpy-arrays/targets-13-14.npy'),
+                        np.load('./data/lineup-data/SP1/processed-numpy-arrays/targets-14-15.npy'),
+                        np.load('./data/lineup-data/SP1/processed-numpy-arrays/targets-15-16.npy'),
+                        np.load('./data/lineup-data/SP1/processed-numpy-arrays/targets-16-17.npy'))).reshape(-1, 3)
+
+    outputs = 1 / outputs
 
     net = NeuralNet()
 
-    net.train_model(inputs[:-50], outputs[:-50], inputs[-50:], outputs[-50:])
+    net.train_model(inputs, outputs, inputs[-50:], outputs[-50:], model_name='./SP1/deep')
 
     net = NeuralNet()
 
-    predictions = net.predict(inputs[-50:])
+    predictions = net.predict(inputs[-50:], model_name='./SP1/deep')
 
     for i, j in zip(predictions, outputs[-50:]):
         print(i)

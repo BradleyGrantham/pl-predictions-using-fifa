@@ -1,6 +1,8 @@
+import glob
 import json
 import datetime
 
+import pandas as pd
 import numpy as np
 from slugify import slugify
 
@@ -8,7 +10,7 @@ import fifa_ratings_predictor.constants as constants
 
 
 def read_player_data(season=None):
-    with open('./data/players-by-team.json') as json_file:
+    with open('./data/player-data/players-by-team.json') as json_file:
         data = json.load(json_file)
 
     data = assign_guids(data)
@@ -25,8 +27,8 @@ def read_player_data(season=None):
     return data
 
 
-def read_match_data(season=None, sort=True):
-    with open('./data/match-lineups-with-odds.json') as json_file:
+def read_match_data(season=None, sort=True, league='E0'):
+    with open('./data/lineup-data/' + league + '/match-lineups-with-odds.json') as json_file:
         data = json.load(json_file)
 
     for match in data:
@@ -58,6 +60,21 @@ def read_fixtures_data(filepath='./crawler/fixtures.json'):
     fixtures = sorted(fixtures, key=lambda x: x['datetime'])
 
     return fixtures
+
+
+def read_all_football_data(league):
+    path = './data/football-data/' + league
+    all_files = glob.glob(path + "/*.csv")
+    list_ = []
+    for file_ in all_files:
+        df = pd.read_csv(file_)
+        list_.append(df)
+    df = pd.concat(list_, sort=False)
+
+    df = df[~df['HomeTeam'].isnull()]
+    df = df[~df['AwayTeam'].isnull()]
+
+    return df
 
 
 def normalise_features(vector):
@@ -100,21 +117,24 @@ def assign_general_position(position):
 
 
 def assign_odds_to_match(matchlineups, fd):
+    league = fd['Div'].tolist()[0]
     for match in matchlineups:
+        try:
+            home_team = constants.FOOTBALL_DATA_TEAM_MAPPINGS[league][match['info']['home team']]
+            away_team = constants.FOOTBALL_DATA_TEAM_MAPPINGS[league][match['info']['away team']]
+
+        except KeyError:
+            home_team = None
+            away_team = None
+
         for index, row in fd.iterrows():
-            try:
-                home_team = constants.FOOTBALL_DATA_TEAM_MAPPINGS['2014-2015'][match['info']['home team']]
-                away_team = constants.FOOTBALL_DATA_TEAM_MAPPINGS['2014-2015'][match['info']['away team']]
 
-            except KeyError:
-                home_team = None
-                away_team = None
-
-        if home_team == slugify(row['HomeTeam']) and away_team == slugify(row['AwayTeam']):
-            if datetime.datetime.strptime(match['info']['date'], '%d %B %Y') == datetime.datetime.strptime(row['Date'], '%d/%m/%y'):
-                match['info']['home odds'] = row['PSH']
-                match['info']['draw odds'] = row['PSD']
-                match['info']['away odds'] = row['PSA']
+            if home_team == slugify(row['HomeTeam']) and away_team == slugify(row['AwayTeam']):
+                if datetime.datetime.strptime(match['info']['date'], '%d %B %Y') == datetime.datetime.strptime(row['Date'], '%d/%m/%y'):
+                    match['info']['home odds'] = row['PSH']
+                    match['info']['draw odds'] = row['PSD']
+                    match['info']['away odds'] = row['PSA']
+                    break
 
     return matchlineups
 

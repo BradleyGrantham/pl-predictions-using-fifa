@@ -7,30 +7,28 @@ from tqdm import tqdm
 from fifa_ratings_predictor.data_methods import read_fixtures_data, normalise_features
 from fifa_ratings_predictor.model import NeuralNet
 
-NUMBER_OF_SIMULATIONS2 = 1000
-
-PREDICTED_LINEUPS2 = {'afc-bournemouth': np.array([80, 76, 75, 77, 78, 75, 0, 75, 73, 75, 0, 0, 0, 0, 77, 69, 0, 0]),
-                      'arsenal': np.array([84, 81, 83, 73, 0, 0, 0, 68, 82, 84, 77, 87, 76, 0, 87, 0, 0, 0]),
+PREDICTED_LINEUPS2 = {'afc-bournemouth': np.array([80, 76, 77, 78, 76, 0, 0, 68, 73, 76, 0, 0, 0, 0, 74, 77, 77, 0]),
+                      'arsenal': np.array([85, 80, 83, 80, 85, 0, 0, 78, 83, 87, 0, 0, 0, 0, 87, 84, 84, 0]),
                       'brighton-hove-albion': np.array(
-                          [78, 75, 74, 76, 76, 0, 0, 72, 76, 77, 78, 78, 0, 0, 74, 0, 0, 0]),
-                      'burnley': np.array([78, 78, 76, 79, 80, 0, 0, 78, 78, 74, 75, 77, 0, 0, 77, 0, 0, 0]),
+                          [78, 76, 76, 73, 74, 0, 0, 76, 72, 78, 75, 0, 0, 0, 78, 79, 0, 0]),
+                      'burnley': np.array([78, 79, 76, 78, 80, 0, 0, 78, 78, 74, 77, 0, 0, 0, 77, 77, 0, 0]),
                       'cardiff-city': np.array([72, 74, 75, 75, 71, 0, 0, 72, 74, 74, 0, 0, 0, 0, 72, 75, 75, 0]),
-                      'chelsea': np.array([82, 79, 82, 82, 82, 86, 0, 85, 88, 0, 0, 0, 0, 0, 91, 84, 84, 0]),
-                      'crystal-palace': np.array([73, 75, 74, 78, 72, 65, 0, 78, 78, 76, 0, 0, 0, 0, 79, 71, 0, 0]),
-                      'everton': np.array([80, 81, 80, 79, 80, 0, 0, 74, 81, 80, 79, 77, 0, 0, 80, 0, 0, 0]),
-                      'fulham': np.array([73, 73, 69, 71, 75, 0, 0, 74, 79, 75, 0, 0, 0, 0, 76, 79, 81, 0]),
+                      'chelsea': np.array([82, 86, 82, 84, 82, 0, 0, 85, 88, 82, 0, 0, 0, 0, 91, 84, 84, 0]),
+                      'crystal-palace': np.array([77, 80, 78, 75, 70, 0, 0, 78, 72, 76, 0, 0, 0, 0, 78, 82, 79, 0]),
+                      'everton': np.array([80, 81, 80, 79, 80, 0, 0, 80, 81, 80, 0, 0, 0, 0, 80, 79, 78, 0]),
+                      'fulham': np.array([80, 72, 75, 75, 77, 0, 0, 82, 75, 78, 0, 0, 0, 0, 79, 74, 70, 0]),
                       'huddersfield-town': np.array([75, 73, 76, 75, 76, 0, 0, 71, 75, 73, 70, 0, 0, 0, 69, 76, 0, 0]),
                       'leicester-city': np.array([82, 75, 73, 79, 76, 0, 0, 80, 84, 81, 75, 0, 0, 0, 82, 77, 0, 0]),
-                      'liverpool': np.array([80, 75, 79, 80, 84, 0, 0, 81, 81, 80, 0, 0, 0, 0, 85, 87, 84, 0]),
-                      'manchester-city': np.array([85, 84, 85, 83, 70, 0, 0, 85, 91, 89, 0, 0, 0, 0, 84, 89, 85, 0]),
-                      'manchester-united': np.array([91, 83, 79, 81, 78, 0, 0, 85, 82, 88, 81, 0, 0, 0, 86, 88, 0, 0]),
+                      'liverpool': np.array([84, 75, 84, 80, 79, 0, 0, 81, 83, 84, 0, 0, 0, 0, 85, 87, 84, 0]),
+                      'manchester-city': np.array([85, 84, 85, 85, 79, 0, 0, 85, 91, 89, 0, 0, 0, 0, 85, 89, 85, 0]),
+                      'manchester-united': np.array([91, 83, 79, 81, 79, 0, 0, 85, 81, 88, 81, 0, 0, 0, 86, 88, 0, 0]),
                       'newcastle-united': np.array([75, 76, 74, 78, 78, 0, 0, 78, 76, 74, 75, 0, 0, 0, 75, 75, 0, 0]),
-                      'southampton': np.array([76, 78, 79, 71, 76, 0, 0, 77, 77, 76, 79, 76, 0, 0, 75, 0, 0, 0]),
-                      'tottenham-hotspur': np.array([88, 81, 81, 82, 86, 0, 0, 81, 88, 84, 84, 84, 0, 0, 88, 0, 0, 0]),
+                      'southampton': np.array([76, 78, 79, 71, 76, 0, 0, 77, 77, 78, 79, 76, 0, 0, 78, 0, 0, 0]),
+                      'tottenham-hotspur': np.array([88, 81, 86, 85, 81, 0, 0, 81, 88, 84, 84, 84, 0, 0, 88, 0, 0, 0]),
                       'watford': np.array([80, 76, 77, 76, 74, 76, 0, 76, 80, 79, 0, 0, 0, 0, 77, 76, 0, 0]),
-                      'west-ham-united': np.array([78, 76, 74, 75, 78, 0, 0, 76, 76, 81, 81, 0, 0, 0, 79, 81, 0, 0]),
+                      'west-ham-united': np.array([78, 76, 76, 75, 78, 0, 0, 81, 81, 81, 81, 0, 0, 0, 81, 81, 0, 0]),
                       'wolverhampton-wanderers': np.array(
-                          [72, 74, 72, 74, 78, 74, 0, 77, 82, 0, 0, 0, 0, 0, 75, 82, 78, 0])}
+                          [83, 71, 72, 76, 73, 78, 0, 78, 82, 75, 0, 0, 0, 0, 78, 77, 0, 0])}
 
 
 class SeasonSimulator:
@@ -155,4 +153,4 @@ class SeasonSimulator:
 if __name__ == '__main__':
     fixtures2 = read_fixtures_data()
     sim = SeasonSimulator(fixtures2, PREDICTED_LINEUPS2, model_path='./deep-models-all/deep')
-    print(sim.simulate_monte_carlo(1000))
+    print(sim.simulate_monte_carlo(1000000))

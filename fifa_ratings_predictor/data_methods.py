@@ -50,7 +50,7 @@ def read_match_data(season=None, sort=True, league='E0'):
     return data
 
 
-def read_fixtures_data(filepath='./crawler/fixtures.json'):
+def read_fixtures_data(filepath='./data/fixtures/E0/18-19-fixtures.json'):
     with open(filepath) as jsonfile:
         fixtures = json.load(jsonfile)
 

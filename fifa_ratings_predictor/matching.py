@@ -30,6 +30,8 @@ def match_lineups_to_fifa_players(lineup_names, raw_names, lineup_numbers, lineu
 
     max_prob_dict = {max(v, key=v.get): k for k, v in probability_dict.items()}
 
+    print(max_prob_dict)
+
     players_to_cache = {v: k for k, v in max_prob_dict.items()}
 
     assert len(max_prob_dict.keys()) == 11, 'We need 11 players, retrieved {}'.format(len(max_prob_dict.keys()))

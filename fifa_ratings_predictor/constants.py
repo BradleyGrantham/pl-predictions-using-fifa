@@ -583,6 +583,51 @@ NATIONALITIES = {'afghanistan',
                  'zambia',
                  'zimbabwe'}
 
+FLASH_SCORES_TEAM_TO_ODDS_CHECKER = {'manchester-utd': 'man-utd',
+                                     'leicester': 'leicester',
+                                     'newcastle': 'newcastle',
+                                     'tottenham': 'tottenham',
+                                     'bournemouth': 'bournemouth',
+                                     'cardiff': 'cardiff-city',
+                                     'fulham': 'fulham',
+                                     'crystal-palace': 'crystal-palace',
+                                     'huddersfield': 'huddersfield',
+                                     'chelsea': 'chelsea',
+                                     'watford': 'watford',
+                                     'brighton': 'brighton',
+                                     'wolves': 'wolves',
+                                     'everton': 'everton',
+                                     'liverpool': 'liverpool',
+                                     'west-ham': 'west-ham',
+                                     'manchester-city': 'man-city',
+                                     'arsenal': 'arsenal',
+                                     'southampton': 'southampton',
+                                     'burnley': 'burnley'
+                                     }
+
+FLASH_SCORES_TEAM_TO_PLAYER_RATINGS = {'manchester-utd': 'manchester-utd',
+                                       'leicester': 'leicester-city',
+                                       'newcastle': 'newcastle-utd',
+                                       'tottenham': 'spurs',
+                                       'bournemouth': 'bournemouth',
+                                       'cardiff': 'cardiff-city',
+                                       'fulham': 'fulham',
+                                       'crystal-palace': 'crystal-palace',
+                                       'huddersfield': 'huddersfield',
+                                       'chelsea': 'chelsea',
+                                       'watford': 'watford',
+                                       'brighton': 'brighton',
+                                       'wolves': 'wolves',
+                                       'everton': 'everton',
+                                       'liverpool': 'liverpool',
+                                       'west-ham': 'west-ham',
+                                       'manchester-city': 'manchester-city',
+                                       'arsenal': 'arsenal',
+                                       'southampton': 'southampton',
+                                       'burnley': 'burnley'
+                                       }
+
+
 TEAM_PROBABILITY = 0.15
 NUMBER_PROBABILITY = 0.2
 NATIONALITY_PROBABILITY = 0.15

@@ -19,16 +19,16 @@ PREDICTED_LINEUPS2 = {'afc-bournemouth': np.array([80, 76, 77, 78, 76, 0, 0, 68,
                       'fulham': np.array([80, 72, 75, 75, 77, 0, 0, 82, 75, 78, 0, 0, 0, 0, 79, 74, 70, 0]),
                       'huddersfield-town': np.array([75, 73, 76, 75, 76, 0, 0, 71, 75, 73, 70, 0, 0, 0, 69, 76, 0, 0]),
                       'leicester-city': np.array([82, 75, 73, 79, 76, 0, 0, 80, 84, 81, 75, 0, 0, 0, 82, 77, 0, 0]),
-                      'liverpool': np.array([84, 75, 84, 80, 79, 0, 0, 81, 83, 84, 0, 0, 0, 0, 85, 87, 84, 0]),
+                      'liverpool': np.array([84, 75, 84, 80, 79, 0, 0, 81, 88, 84, 0, 0, 0, 0, 85, 84, 87, 0]),
                       'manchester-city': np.array([85, 84, 85, 85, 79, 0, 0, 85, 91, 89, 0, 0, 0, 0, 85, 89, 85, 0]),
-                      'manchester-united': np.array([91, 83, 79, 81, 79, 0, 0, 85, 81, 88, 81, 0, 0, 0, 86, 88, 0, 0]),
+                      'manchester-united': np.array([91, 83, 79, 81, 79, 0, 0, 85, 81, 88, 0, 0, 0, 0, 86, 88, 81, 0]),
                       'newcastle-united': np.array([75, 76, 74, 78, 78, 0, 0, 78, 76, 74, 75, 0, 0, 0, 75, 75, 0, 0]),
                       'southampton': np.array([76, 78, 79, 71, 76, 0, 0, 77, 77, 78, 79, 76, 0, 0, 78, 0, 0, 0]),
-                      'tottenham-hotspur': np.array([88, 81, 86, 85, 81, 0, 0, 81, 88, 84, 84, 84, 0, 0, 88, 0, 0, 0]),
+                      'tottenham-hotspur': np.array([88, 81, 86, 85, 81, 0, 0, 81, 88, 84, 84, 0, 0, 0, 88, 84, 0, 0]),
                       'watford': np.array([80, 76, 77, 76, 74, 76, 0, 76, 80, 79, 0, 0, 0, 0, 77, 76, 0, 0]),
                       'west-ham-united': np.array([78, 76, 76, 75, 78, 0, 0, 81, 81, 81, 81, 0, 0, 0, 81, 81, 0, 0]),
                       'wolverhampton-wanderers': np.array(
-                          [83, 71, 72, 76, 73, 78, 0, 78, 82, 75, 0, 0, 0, 0, 78, 77, 0, 0])}
+                          [83, 71, 72, 76, 73, 0, 0, 78, 82, 78, 0, 0, 0, 0, 78, 77, 75, 0])}
 
 
 class SeasonSimulator:
@@ -152,5 +152,5 @@ class SeasonSimulator:
 
 if __name__ == '__main__':
     fixtures2 = read_fixtures_data()
-    sim = SeasonSimulator(fixtures2, PREDICTED_LINEUPS2, model_path='./deep-models-all/deep')
-    print(sim.simulate_monte_carlo(1000000))
+    sim = SeasonSimulator(fixtures2, PREDICTED_LINEUPS2, model_path='./models/E0/deep')
+    print(sim.simulate_monte_carlo(10000, verbose=True))

@@ -6,39 +6,39 @@ class FifaSpider(scrapy.Spider):
     name = "fifastats"
 
     # TODO - run this for extended period of time to get all players
-
     def start_requests(self):
-        urls = [
+        urls2 = [
             "https://www.fifaindex.com/players/fifa17_173/",
             "https://www.fifaindex.com/players/fifa16_73/",
             "https://www.fifaindex.com/players/fifa15_14/",
             "https://www.fifaindex.com/players/fifa14_13/",
             "https://www.fifaindex.com/players/fifa13_10/",
         ]
+        urls = [
+            "https://www.fifaindex.com/players/fifa13_10/"
+        ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
         for row in response.css("tr td"):
-            link = row.css("a::attr(href)").extract()
-            # print(name, link)
+            link = row.css("a::attr(href)").get()
             if link:
-                if "/player/" in link[0]:
-                    url = response.urljoin(link[0])
-                    yield scrapy.Request(url, callback=self.parse_player)
+                if "/player/" in link:
+                    print(self.name, link)
+                    yield response.follow(link, callback=self.parse_player)
 
-        next_page = response.css("li.next a::attr(href)").extract_first()
-        if next_page is not None:
-            next_page = response.urljoin(next_page)
-            yield scrapy.Request(next_page, callback=self.parse)
+        for page_link in response.css(".pagination a.page-link"):
+            text = page_link.css("::text").get()
+            next = page_link.attrib["href"]
+            if "Next" in text:
+                print("Next page", next)
+                yield response.follow(next, callback=self.parse)
 
     @staticmethod
     def parse_player(response):
-        name = (response
-                .css("div.media-body")
-                .css("h2.media-heading::text")
-                .extract()[0])
-
+        name = response.css("img.player").attrib["title"]
+        print(name)
         try:
             team = (
                 response.css("div.col-lg-4")

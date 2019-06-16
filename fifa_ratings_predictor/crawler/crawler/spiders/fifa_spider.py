@@ -7,86 +7,77 @@ class FifaSpider(scrapy.Spider):
 
     # TODO - run this for extended period of time to get all players
     def start_requests(self):
-        urls2 = [
-            "https://www.fifaindex.com/players/fifa17_173/",
-            "https://www.fifaindex.com/players/fifa16_73/",
-            "https://www.fifaindex.com/players/fifa15_14/",
-            "https://www.fifaindex.com/players/fifa14_13/",
-            "https://www.fifaindex.com/players/fifa13_10/",
-        ]
+        urls_all_top = [
+            "https://www.fifaindex.com/players/top/fifa19",
+            "https://www.fifaindex.com/players/top/fifa18/",
+            "https://www.fifaindex.com/players/top/fifa17/",
+            "https://www.fifaindex.com/players/top/fifa16/",
+            "https://www.fifaindex.com/players/top/fifa15/",
+            "https://www.fifaindex.com/players/top/fifa14/",
+            "https://www.fifaindex.com/players/top/fifa13/",
+        ] # use this for top100 players
         urls = [
-            "https://www.fifaindex.com/players/fifa13_10/"
+            "https://www.fifaindex.com/players/fifa19",
+            "https://www.fifaindex.com/players/fifa18/",
+            "https://www.fifaindex.com/players/fifa17/",
+            "https://www.fifaindex.com/players/fifa16/",
+            "https://www.fifaindex.com/players/fifa15/",
+            "https://www.fifaindex.com/players/fifa14/",
+            "https://www.fifaindex.com/players/fifa13/",
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        for row in response.css("tr td"):
-            link = row.css("a::attr(href)").get()
+        for player_row in response.css("tr"):
+            link = player_row.css("figure.player a::attr(href)").get()
             if link:
                 if "/player/" in link:
-                    print(self.name, link)
-                    yield response.follow(link, callback=self.parse_player)
+                    # extract team
+                    team = player_row.css("a.link-team")
+                    if team:
+                        # only add if player has a team
+                        team_name = team.attrib["title"]
+                        request = response.follow(link, callback=self.parse_player)
+                        # pass additional parameter for the player
+                        request.meta["team"] = team_name
+                        yield request
 
         for page_link in response.css(".pagination a.page-link"):
             text = page_link.css("::text").get()
             next = page_link.attrib["href"]
             if "Next" in text:
-                print("Next page", next)
+                print("Next page:", next)
                 yield response.follow(next, callback=self.parse)
 
     @staticmethod
     def parse_player(response):
         name = response.css("img.player").attrib["title"]
-        print(name)
-        try:
+        
+        team = response.meta["team"]
+        if not team:
+            # gives the title of the first occurence
             team = (
-                response.css("div.col-lg-4")
-                .css("div.panel-heading")
-                .css("a::attr(title)")[2]
-                .extract()
-            )
-        except IndexError:
-            team = (
-                response.css("div.col-lg-4")
-                .css("div.panel-heading")
-                .css("a::attr(title)")[0]
-                .extract()
+                response.css("div.team")
+                .css("a.link-team")
+                .attrib["title"]
             )
 
         number = (
-            response.css("div.col-lg-4")
-            .css("div.panel-body")
-            .css("span.pull-right")[3]
-            .css("span::text")
-            .extract()[0]
+            response.css("div.team")    # multiple results when multiple teams !
+            .css("span.float-right::text")
+            .get()
         )
-
-        if len(number) == 4:
-            number = (
-                response.css("div.col-lg-4")
-                .css("div.panel-body")
-                .css("span.pull-right")[1]
-                .css("span::text")
-                .extract()[0]
-            )
 
         position = (
-            response.css("div.col-lg-5")
-            .css("div.panel-body")
-            .css("span.label::text")
-            .extract_first()
+            response.css("div.team")    # multiple results when multiple teams !
+            .css("a.link-position")
+            .attrib["title"]
         )
 
-        rating = (
-            response.css("div.col-lg-5")
-            .css("div.panel-heading")
-            .css("span.label")[0]
-            .css("span.label::text")
-            .extract()[0]
-        )
+        rating = response.css(".card-header span.rating::text").get() # first: total, second: potential
 
-        nationality = slugify(response.css("h2.subtitle a::text").extract()[0])
+        nationality = response.css("a.link-nation").attrib["title"]
 
         yield {
             "name": slugify(name),
@@ -97,7 +88,7 @@ class FifaSpider(scrapy.Spider):
                 "raw name": name,
                 "rating": int(rating),
                 "kit number": number,
-                "nationality": nationality,
+                "nationality": slugify(nationality),
                 "url": response.request.url,
             },
         }

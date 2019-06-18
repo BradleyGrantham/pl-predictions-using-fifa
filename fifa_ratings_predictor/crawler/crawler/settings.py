@@ -14,8 +14,8 @@ BOT_NAME = 'crawler'
 SPIDER_MODULES = ['crawler.spiders']
 NEWSPIDER_MODULE = 'crawler.spiders'
 
-# Log Level (DEBUG, INFO, ERROR)
-LOG_LEVEL = 'INFO'
+# Log Level (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL = 'DEBUG'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'crawler (+http://www.yourdomain.com)'  # 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:60.0) '

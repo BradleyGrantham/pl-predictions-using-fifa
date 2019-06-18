@@ -4,6 +4,7 @@ from slugify import slugify
 
 class FifaSpider(scrapy.Spider):
     name = "fifastats"
+    latest_season = "fifa19"
 
     # TODO - run this for extended period of time to get all players
     def start_requests(self):
@@ -17,7 +18,7 @@ class FifaSpider(scrapy.Spider):
             "https://www.fifaindex.com/players/top/fifa13/",
         ] # use this for top100 players
         urls = [
-            "https://www.fifaindex.com/players/fifa19",
+            "https://www.fifaindex.com/players/fifa19/",
             "https://www.fifaindex.com/players/fifa18/",
             "https://www.fifaindex.com/players/fifa17/",
             "https://www.fifaindex.com/players/fifa16/",
@@ -50,8 +51,7 @@ class FifaSpider(scrapy.Spider):
                 print("Next page:", next)
                 yield response.follow(next, callback=self.parse)
 
-    @staticmethod
-    def parse_player(response):
+    def parse_player(self, response):
         name = response.css("img.player").attrib["title"]
         
         team = response.meta["team"]
@@ -79,6 +79,12 @@ class FifaSpider(scrapy.Spider):
 
         nationality = response.css("a.link-nation").attrib["title"]
 
+        url = response.request.url
+
+        season = url.split("/")[-2]
+        if "/fifa" not in url:
+            season = self.latest_season
+
         yield {
             "name": slugify(name),
             "info": {
@@ -89,7 +95,8 @@ class FifaSpider(scrapy.Spider):
                 "rating": int(rating),
                 "kit number": number,
                 "nationality": slugify(nationality),
-                "url": response.request.url,
+                "season": season,
+                "url": url,
             },
         }
 
@@ -201,89 +208,72 @@ class MatchSpider(scrapy.Spider):
 
 class FifaIndexTeamScraper(scrapy.Spider):
     name = "fifa-index-team"
+    latest_season = "fifa19"
 
     # TODO - run this for extended period of time to get all players
 
     def start_requests(self):
         urls = [
-            "https://www.fifaindex.com/teams/",
-            "https://www.fifaindex.com/teams/fifa17_173/",
-            "https://www.fifaindex.com/teams/fifa16_73/",
-            "https://www.fifaindex.com/teams/fifa15_14/",
-            "https://www.fifaindex.com/teams/fifa14_13/",
+            "https://www.fifaindex.com/teams/fifa19/",
+            "https://www.fifaindex.com/teams/fifa18/",
+            "https://www.fifaindex.com/teams/fifa17/",
+            "https://www.fifaindex.com/teams/fifa16/",
+            "https://www.fifaindex.com/teams/fifa15/",
+            "https://www.fifaindex.com/teams/fifa14/",
+            "https://www.fifaindex.com/teams/fifa13/",
+            "https://www.fifaindex.com/teams/fifa12/"
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        links = [a.extract() for a in response.css("td a::attr(href)")]
-        for link in links:
-            if "/team/" in link:
-                url = response.urljoin(link)
-                yield scrapy.Request(url, callback=self.parse_team)
+        for team_row in response.css("table.table-teams tr"):
+            link = team_row.css("td a.link-team::attr(href)").get()
+            if link:
+                if "/team/" in link:
+                    yield response.follow(link, callback=self.parse_team)
 
-        next_page = response.css("li.next a::attr(href)").extract_first()
-        if next_page is not None and int(next_page.split("/")[-2]) < 10:
-            next_page = response.urljoin(next_page)
-            yield scrapy.Request(next_page, callback=self.parse)
+        for page_link in response.css(".pagination a.btn"):
+            text = page_link.css("::text").get()
+            next = page_link.attrib["href"]
+            if "Next" in text and int(next.split("/")[-2]) < 10:    # < 10 for 1. Bundesliga, < 15 for 2. Bundesliga
+                print("Next page:", next)
+                yield response.follow(next, callback=self.parse)
 
-    @staticmethod
-    def parse_team(response):
-        team = slugify(response.css(".media-heading::text").extract_first())
+    def parse_team(self, response):
+        team = slugify(response.css("div h1::text").get())
+        print(team)
 
-        for i in range(1, len(response.css('tr'))):
-            name_css = (
-                ".table > "
-                "tbody:nth-child(2) > "
-                "tr:nth-child({}) > "
-                "td:nth-child(6) > "
-                "a:nth-child(1)::attr(title)"
-            )
-            name = slugify(response.css(name_css.format(i)).extract_first())
+        players_table = response.css('table.table-players')[0]
+        for player in players_table.css('tbody tr'):
+            player_name_link = player.css("td:nth-child(6) a.link-player")
 
-            number_css = (
-                ".table > " "tbody:nth-child(2) > " "tr:nth-child({}) > " "td:nth-child(1)::t" "ext"
-            )
-            number = int(response.css(number_css.format(i)).extract_first())
+            name = player_name_link.attrib["title"]
 
-            nationality_css = (
-                ".table > "
-                "tbody:nth-child(2) > "
-                "tr:nth-child({}) > "
-                "td:nth-child(4) > "
-                "a:nth-child(1) > img:nth-child(1)::attr(title)"
-            )
-            nationality = slugify(
-                response.css(nationality_css.format(i)).extract_first())
+            url = player_name_link.attrib["href"]
 
-            position_css = (
-                ".table > "
-                "tbody:nth-child(2) > "
-                "tr:nth-child({}) > "
-                "td:nth-child(7) > "
-                "a:nth-child(1) > span:nth-child(1)::text"
-            )
-            position = response.css(position_css.format(i)).extract_first()
+            season = url.split("/")[-2]
+            if "/fifa" not in url:
+                season = self.latest_season
 
-            rating_css = (
-                "table > t"
-                "body:nth-child(2) > t"
-                "r:nth-child({}) > t"
-                "d:nth-child(5) > s"
-                "pan:nth-child(1)::text"
-            )
-            rating = response.css(rating_css.format(i)).extract_first()
+            number = int(player.css("td:nth-child(1)::text").get())
+            
+            nationality = player.css("td:nth-child(4) a::attr(title)").get()
 
+            position = player.css("td:nth-child(2) span.position::text").get()
+
+            rating = player.css("td:nth-child(5) span.rating::text").get()
+            
             yield {
                 "name": slugify(name),
                 "team": team,
                 "position": position,
                 "rating": int(rating),
                 "number": number,
-                "nationality": nationality,
-                "url": response.request.url,
+                "nationality": slugify(nationality),
+                "season": season,
+                "url": url,
             }
-
 
 class FixturesSpider(scrapy.Spider):
     name = "fixtures"
@@ -291,6 +281,9 @@ class FixturesSpider(scrapy.Spider):
     # TODO - want the other names - not full names
 
     def start_requests(self):
+        more_urls = [
+            "https://www.betstudy.com/soccer-stats/c/germany/bundesliga/d/fixtures/"
+        ]
         urls = [
             "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/fixtures/"
         ]
@@ -300,9 +293,9 @@ class FixturesSpider(scrapy.Spider):
     @staticmethod
     def parse_fixtures(response):
         for fixture in response.css("tr")[1:]:
-            home_team = fixture.css("td.right-align a::text").extract_first()
-            away_team = fixture.css("td.left-align a::text").extract_first()
-            date = fixture.css("td::text").extract_first()
+            home_team = fixture.css("td.right-align a::text").get()
+            away_team = fixture.css("td.left-align a::text").get()
+            date = fixture.css("td::text").get()
             yield {
                 "date": date,
                 "home team": slugify(home_team),

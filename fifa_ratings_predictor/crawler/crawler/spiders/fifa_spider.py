@@ -8,15 +8,6 @@ class FifaSpider(scrapy.Spider):
 
     # TODO - run this for extended period of time to get all players
     def start_requests(self):
-        urls_all_top = [
-            "https://www.fifaindex.com/players/top/fifa19",
-            "https://www.fifaindex.com/players/top/fifa18/",
-            "https://www.fifaindex.com/players/top/fifa17/",
-            "https://www.fifaindex.com/players/top/fifa16/",
-            "https://www.fifaindex.com/players/top/fifa15/",
-            "https://www.fifaindex.com/players/top/fifa14/",
-            "https://www.fifaindex.com/players/top/fifa13/",
-        ] # use this for top100 players
         urls = [
             "https://www.fifaindex.com/players/fifa19/",
             "https://www.fifaindex.com/players/fifa18/",
@@ -306,10 +297,11 @@ class FixturesSpider(scrapy.Spider):
 
     def start_requests(self):
         more_urls = [
-            "https://www.betstudy.com/soccer-stats/c/germany/bundesliga/d/fixtures/"
+            "https://www.betstudy.com/soccer-stats/c/germany/bundesliga/d/fixtures/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/fixtures/"
         ]
         urls = [
-            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/fixtures/"
+            "https://www.betstudy.com/soccer-stats/c/france/ligue-1/d/fixtures/"
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse_fixtures)

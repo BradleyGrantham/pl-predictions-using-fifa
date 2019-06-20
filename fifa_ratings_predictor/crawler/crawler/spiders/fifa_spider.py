@@ -107,37 +107,58 @@ class MatchSpider(scrapy.Spider):
     # TODO - want the other names - not full names
 
     def start_requests(self):
-        urls = [
+        urls_france = [
+            "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2018-2019/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2017-2018/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2016-2017/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2015-2016/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2014-2015/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2013-2014/",
+            "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2012-2013/"
         ]
+        urls_england = [
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2018-2019/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2017-2018/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2016-2017/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2015-2016/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2014-2015/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2013-2014/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2012-2013/"
+        ]
+        urls_germany = [
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2018-2019/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2017-2018/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2016-2017/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2015-2016/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2014-2015/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2013-2014/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2012-2013/"
+        ]
+        urls = urls_england
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse_fixtures_page)
 
     def parse_fixtures_page(self, response):
         for info_button in response.css("ul.action-list").css("a::attr(href)"):
-            url = response.urljoin(info_button.extract())
-            yield scrapy.Request(url, callback=self.parse_match_page)
+            url = info_button.get()
+            yield response.follow(url, self.parse_match_page)
 
     def parse_match_page(self, response):
 
-        home_team, away_team = response.css("div.player h2 a::text").extract()
+        home_team, away_team = response.css("div.player h2 a::text").getall()
 
-        date = response.css("em.date").css("span.timestamp::text").extract_first()
+        date = response.css("em.date").css("span.timestamp::text").get()
 
         url = response.request.url
 
         match_number = response.request.url.split("-")[-1].split("/")[0]
 
         home_goals, away_goals = (
-            response.css("div.info strong.score::text").extract_first().split("-")
+            response.css("div.info strong.score::text").get().split("-")
         )
 
         for table in response.css("div.table-holder"):
-            if table.css("h2::text").extract_first() == "Lineups and subsitutes":
+            if table.css("h2::text").get() == "Lineups and subsitutes":
                 lineups = table
 
         home_lineup_css = lineups.css("table.info-table")[0]
@@ -158,31 +179,31 @@ class MatchSpider(scrapy.Spider):
 
         home_lineup = [
             slugify(x)
-            for x in home_lineup_css.css("tr td.left-align").css("a::text").extract()
+            for x in home_lineup_css.css("tr td.left-align").css("a::text").getall()
         ]
         away_lineup = [
             slugify(x)
-            for x in away_lineup_css.css("tr td.left-align").css("a::text").extract()
+            for x in away_lineup_css.css("tr td.left-align").css("a::text").getall()
         ]
 
         home_lineup_number = [
-            int(x) for x in home_lineup_css.css("tr td.size23 strong::text").extract()
+            int(x) for x in home_lineup_css.css("tr td.size23 strong::text").getall()
         ]
         away_lineup_number = [
-            int(x) for x in away_lineup_css.css("tr td.size23 strong::text").extract()
+            int(x) for x in away_lineup_css.css("tr td.size23 strong::text").getall()
         ]
 
         home_lineup_nationality = [
             slugify(x)
             for x in home_lineup_css.css("tr td.left-align")
             .css("img.flag-ico::attr(alt)")
-            .extract()
+            .getall()
         ]
         away_lineup_nationality = [
             slugify(x)
             for x in away_lineup_css.css("tr td.left-align")
             .css("img.flag-ico::attr(alt)")
-            .extract()
+            .getall()
         ]
 
         yield {
@@ -260,7 +281,10 @@ class FifaIndexTeamScraper(scrapy.Spider):
             
             nationality = player.css("td:nth-child(4) a::attr(title)").get()
 
-            position = player.css("td:nth-child(2) span.position::text").get()
+            for position_option in player.css("span.position::text").getall():
+                if position_option not in ["Sub", "Res"]:
+                    position = position_option
+                    break
 
             rating = player.css("td:nth-child(5) span.rating::text").get()
             

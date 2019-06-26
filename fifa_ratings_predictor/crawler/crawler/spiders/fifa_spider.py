@@ -4,89 +4,77 @@ from slugify import slugify
 
 class FifaSpider(scrapy.Spider):
     name = "fifastats"
+    latest_season = "fifa19"
 
     # TODO - run this for extended period of time to get all players
-
     def start_requests(self):
         urls = [
-            "https://www.fifaindex.com/players/fifa17_173/",
-            "https://www.fifaindex.com/players/fifa16_73/",
-            "https://www.fifaindex.com/players/fifa15_14/",
-            "https://www.fifaindex.com/players/fifa14_13/",
-            "https://www.fifaindex.com/players/fifa13_10/",
+            "https://www.fifaindex.com/players/fifa19/",
+            "https://www.fifaindex.com/players/fifa18/",
+            "https://www.fifaindex.com/players/fifa17/",
+            "https://www.fifaindex.com/players/fifa16/",
+            "https://www.fifaindex.com/players/fifa15/",
+            "https://www.fifaindex.com/players/fifa14/",
+            "https://www.fifaindex.com/players/fifa13/",
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        for row in response.css("tr td"):
-            link = row.css("a::attr(href)").extract()
-            # print(name, link)
+        for player_row in response.css("tr"):
+            link = player_row.css("figure.player a::attr(href)").get()
             if link:
-                if "/player/" in link[0]:
-                    url = response.urljoin(link[0])
-                    yield scrapy.Request(url, callback=self.parse_player)
+                if "/player/" in link:
+                    # extract team
+                    team = player_row.css("a.link-team")
+                    if team:
+                        # only add if player has a team
+                        team_name = team.attrib["title"]
+                        request = response.follow(link, callback=self.parse_player)
+                        # pass additional parameter for the player
+                        request.meta["team"] = team_name
+                        yield request
 
-        next_page = response.css("li.next a::attr(href)").extract_first()
-        if next_page is not None:
-            next_page = response.urljoin(next_page)
-            yield scrapy.Request(next_page, callback=self.parse)
+        for page_link in response.css(".pagination a.page-link"):
+            text = page_link.css("::text").get()
+            next = page_link.attrib["href"]
+            if "Next" in text:
+                print("Next page:", next)
+                yield response.follow(next, callback=self.parse)
 
-    @staticmethod
-    def parse_player(response):
-        name = (response
-                .css("div.media-body")
-                .css("h2.media-heading::text")
-                .extract()[0])
-
-        try:
+    def parse_player(self, response):
+        name = response.css("img.player").attrib["title"]
+        
+        team = response.meta["team"]
+        if not team:
+            # gives the title of the first occurence
             team = (
-                response.css("div.col-lg-4")
-                .css("div.panel-heading")
-                .css("a::attr(title)")[2]
-                .extract()
-            )
-        except IndexError:
-            team = (
-                response.css("div.col-lg-4")
-                .css("div.panel-heading")
-                .css("a::attr(title)")[0]
-                .extract()
+                response.css("div.team")
+                .css("a.link-team")
+                .attrib["title"]
             )
 
         number = (
-            response.css("div.col-lg-4")
-            .css("div.panel-body")
-            .css("span.pull-right")[3]
-            .css("span::text")
-            .extract()[0]
+            response.css("div.team")    # multiple results when multiple teams !
+            .css("span.float-right::text")
+            .get()
         )
-
-        if len(number) == 4:
-            number = (
-                response.css("div.col-lg-4")
-                .css("div.panel-body")
-                .css("span.pull-right")[1]
-                .css("span::text")
-                .extract()[0]
-            )
 
         position = (
-            response.css("div.col-lg-5")
-            .css("div.panel-body")
-            .css("span.label::text")
-            .extract_first()
+            response.css("div.team")    # multiple results when multiple teams !
+            .css("a.link-position")
+            .attrib["title"]
         )
 
-        rating = (
-            response.css("div.col-lg-5")
-            .css("div.panel-heading")
-            .css("span.label")[0]
-            .css("span.label::text")
-            .extract()[0]
-        )
+        rating = response.css(".card-header span.rating::text").get() # first: total, second: potential
 
-        nationality = slugify(response.css("h2.subtitle a::text").extract()[0])
+        nationality = response.css("a.link-nation").attrib["title"]
+
+        url = response.request.url
+
+        season = url.split("/")[-2]
+        if "/fifa" not in url:
+            season = self.latest_season
 
         yield {
             "name": slugify(name),
@@ -97,8 +85,9 @@ class FifaSpider(scrapy.Spider):
                 "raw name": name,
                 "rating": int(rating),
                 "kit number": number,
-                "nationality": nationality,
-                "url": response.request.url,
+                "nationality": slugify(nationality),
+                "season": season,
+                "url": url,
             },
         }
 
@@ -109,37 +98,58 @@ class MatchSpider(scrapy.Spider):
     # TODO - want the other names - not full names
 
     def start_requests(self):
-        urls = [
+        urls_france = [
+            "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2018-2019/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2017-2018/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2016-2017/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2015-2016/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2014-2015/",
             "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2013-2014/",
+            "http://www.betstudy.com/soccer-stats/c/france/ligue-1/d/results/2012-2013/"
         ]
+        urls_england = [
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2018-2019/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2017-2018/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2016-2017/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2015-2016/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2014-2015/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2013-2014/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/results/2012-2013/"
+        ]
+        urls_germany = [
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2018-2019/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2017-2018/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2016-2017/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2015-2016/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2014-2015/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2013-2014/",
+            "http://www.betstudy.com/soccer-stats/c/england/premier-league/2012-2013/"
+        ]
+        urls = urls_england
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse_fixtures_page)
 
     def parse_fixtures_page(self, response):
         for info_button in response.css("ul.action-list").css("a::attr(href)"):
-            url = response.urljoin(info_button.extract())
-            yield scrapy.Request(url, callback=self.parse_match_page)
+            url = info_button.get()
+            yield response.follow(url, self.parse_match_page)
 
     def parse_match_page(self, response):
 
-        home_team, away_team = response.css("div.player h2 a::text").extract()
+        home_team, away_team = response.css("div.player h2 a::text").getall()
 
-        date = response.css("em.date").css("span.timestamp::text").extract_first()
+        date = response.css("em.date").css("span.timestamp::text").get()
 
         url = response.request.url
 
         match_number = response.request.url.split("-")[-1].split("/")[0]
 
         home_goals, away_goals = (
-            response.css("div.info strong.score::text").extract_first().split("-")
+            response.css("div.info strong.score::text").get().split("-")
         )
 
         for table in response.css("div.table-holder"):
-            if table.css("h2::text").extract_first() == "Lineups and subsitutes":
+            if table.css("h2::text").get() == "Lineups and subsitutes":
                 lineups = table
 
         home_lineup_css = lineups.css("table.info-table")[0]
@@ -160,31 +170,31 @@ class MatchSpider(scrapy.Spider):
 
         home_lineup = [
             slugify(x)
-            for x in home_lineup_css.css("tr td.left-align").css("a::text").extract()
+            for x in home_lineup_css.css("tr td.left-align").css("a::text").getall()
         ]
         away_lineup = [
             slugify(x)
-            for x in away_lineup_css.css("tr td.left-align").css("a::text").extract()
+            for x in away_lineup_css.css("tr td.left-align").css("a::text").getall()
         ]
 
         home_lineup_number = [
-            int(x) for x in home_lineup_css.css("tr td.size23 strong::text").extract()
+            int(x) for x in home_lineup_css.css("tr td.size23 strong::text").getall()
         ]
         away_lineup_number = [
-            int(x) for x in away_lineup_css.css("tr td.size23 strong::text").extract()
+            int(x) for x in away_lineup_css.css("tr td.size23 strong::text").getall()
         ]
 
         home_lineup_nationality = [
             slugify(x)
             for x in home_lineup_css.css("tr td.left-align")
             .css("img.flag-ico::attr(alt)")
-            .extract()
+            .getall()
         ]
         away_lineup_nationality = [
             slugify(x)
             for x in away_lineup_css.css("tr td.left-align")
             .css("img.flag-ico::attr(alt)")
-            .extract()
+            .getall()
         ]
 
         yield {
@@ -210,89 +220,75 @@ class MatchSpider(scrapy.Spider):
 
 class FifaIndexTeamScraper(scrapy.Spider):
     name = "fifa-index-team"
+    latest_season = "fifa19"
 
     # TODO - run this for extended period of time to get all players
 
     def start_requests(self):
         urls = [
-            "https://www.fifaindex.com/teams/",
-            "https://www.fifaindex.com/teams/fifa17_173/",
-            "https://www.fifaindex.com/teams/fifa16_73/",
-            "https://www.fifaindex.com/teams/fifa15_14/",
-            "https://www.fifaindex.com/teams/fifa14_13/",
+            "https://www.fifaindex.com/teams/fifa19/",
+            "https://www.fifaindex.com/teams/fifa18/",
+            "https://www.fifaindex.com/teams/fifa17/",
+            "https://www.fifaindex.com/teams/fifa16/",
+            "https://www.fifaindex.com/teams/fifa15/",
+            "https://www.fifaindex.com/teams/fifa14/",
+            "https://www.fifaindex.com/teams/fifa13/",
+            "https://www.fifaindex.com/teams/fifa12/"
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        links = [a.extract() for a in response.css("td a::attr(href)")]
-        for link in links:
-            if "/team/" in link:
-                url = response.urljoin(link)
-                yield scrapy.Request(url, callback=self.parse_team)
+        for team_row in response.css("table.table-teams tr"):
+            link = team_row.css("td a.link-team::attr(href)").get()
+            if link:
+                if "/team/" in link:
+                    yield response.follow(link, callback=self.parse_team)
 
-        next_page = response.css("li.next a::attr(href)").extract_first()
-        if next_page is not None and int(next_page.split("/")[-2]) < 10:
-            next_page = response.urljoin(next_page)
-            yield scrapy.Request(next_page, callback=self.parse)
+        for page_link in response.css(".pagination a.btn"):
+            text = page_link.css("::text").get()
+            next = page_link.attrib["href"]
+            if "Next" in text and int(next.split("/")[-2]) < 10:    # < 10 for 1. Bundesliga, < 15 for 2. Bundesliga
+                print("Next page:", next)
+                yield response.follow(next, callback=self.parse)
 
-    @staticmethod
-    def parse_team(response):
-        team = slugify(response.css(".media-heading::text").extract_first())
+    def parse_team(self, response):
+        team = slugify(response.css("div h1::text").get())
+        print(team)
 
-        for i in range(1, len(response.css('tr'))):
-            name_css = (
-                ".table > "
-                "tbody:nth-child(2) > "
-                "tr:nth-child({}) > "
-                "td:nth-child(6) > "
-                "a:nth-child(1)::attr(title)"
-            )
-            name = slugify(response.css(name_css.format(i)).extract_first())
+        players_table = response.css('table.table-players')[0]
+        for player in players_table.css('tbody tr'):
+            player_name_link = player.css("td:nth-child(6) a.link-player")
 
-            number_css = (
-                ".table > " "tbody:nth-child(2) > " "tr:nth-child({}) > " "td:nth-child(1)::t" "ext"
-            )
-            number = int(response.css(number_css.format(i)).extract_first())
+            name = player_name_link.attrib["title"]
 
-            nationality_css = (
-                ".table > "
-                "tbody:nth-child(2) > "
-                "tr:nth-child({}) > "
-                "td:nth-child(4) > "
-                "a:nth-child(1) > img:nth-child(1)::attr(title)"
-            )
-            nationality = slugify(
-                response.css(nationality_css.format(i)).extract_first())
+            url = player_name_link.attrib["href"]
 
-            position_css = (
-                ".table > "
-                "tbody:nth-child(2) > "
-                "tr:nth-child({}) > "
-                "td:nth-child(7) > "
-                "a:nth-child(1) > span:nth-child(1)::text"
-            )
-            position = response.css(position_css.format(i)).extract_first()
+            season = url.split("/")[-2]
+            if "/fifa" not in url:
+                season = self.latest_season
 
-            rating_css = (
-                "table > t"
-                "body:nth-child(2) > t"
-                "r:nth-child({}) > t"
-                "d:nth-child(5) > s"
-                "pan:nth-child(1)::text"
-            )
-            rating = response.css(rating_css.format(i)).extract_first()
+            number = int(player.css("td:nth-child(1)::text").get())
+            
+            nationality = player.css("td:nth-child(4) a::attr(title)").get()
 
+            for position_option in player.css("span.position::text").getall():
+                if position_option not in ["Sub", "Res"]:
+                    position = position_option
+                    break
+
+            rating = player.css("td:nth-child(5) span.rating::text").get()
+            
             yield {
                 "name": slugify(name),
                 "team": team,
                 "position": position,
                 "rating": int(rating),
                 "number": number,
-                "nationality": nationality,
-                "url": response.request.url,
+                "nationality": slugify(nationality),
+                "season": season,
+                "url": url,
             }
-
 
 class FixturesSpider(scrapy.Spider):
     name = "fixtures"
@@ -300,8 +296,12 @@ class FixturesSpider(scrapy.Spider):
     # TODO - want the other names - not full names
 
     def start_requests(self):
-        urls = [
+        more_urls = [
+            "https://www.betstudy.com/soccer-stats/c/germany/bundesliga/d/fixtures/",
             "http://www.betstudy.com/soccer-stats/c/england/premier-league/d/fixtures/"
+        ]
+        urls = [
+            "https://www.betstudy.com/soccer-stats/c/france/ligue-1/d/fixtures/"
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse_fixtures)
@@ -309,9 +309,9 @@ class FixturesSpider(scrapy.Spider):
     @staticmethod
     def parse_fixtures(response):
         for fixture in response.css("tr")[1:]:
-            home_team = fixture.css("td.right-align a::text").extract_first()
-            away_team = fixture.css("td.left-align a::text").extract_first()
-            date = fixture.css("td::text").extract_first()
+            home_team = fixture.css("td.right-align a::text").get()
+            away_team = fixture.css("td.left-align a::text").get()
+            date = fixture.css("td::text").get()
             yield {
                 "date": date,
                 "home team": slugify(home_team),

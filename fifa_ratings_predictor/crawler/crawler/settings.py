@@ -14,6 +14,8 @@ BOT_NAME = 'crawler'
 SPIDER_MODULES = ['crawler.spiders']
 NEWSPIDER_MODULE = 'crawler.spiders'
 
+# Log Level (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL = 'DEBUG'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'crawler (+http://www.yourdomain.com)'  # 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:60.0) '
@@ -23,7 +25,7 @@ USER_AGENT = 'crawler (+http://www.yourdomain.com)'  # 'Mozilla/5.0 (Macintosh; 
 ROBOTSTXT_OBEY = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 4
+CONCURRENT_REQUESTS = 16 # before: 4
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay

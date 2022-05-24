@@ -3,7 +3,7 @@ numpy==1.16.4
 pandas==0.24.2
 Scrapy==1.6.0
 tensorboard==1.14.0
-tensorflow==1.14.0
+tensorflow==2.6.4
 Twisted==19.2.1
 pywin32==224
 PyVirtualDisplay==0.2.3

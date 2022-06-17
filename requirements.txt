@@ -1,7 +1,7 @@
 matplotlib==3.1.0
 numpy==1.16.4
 pandas==0.24.2
-Scrapy==1.6.0
+Scrapy==2.6.1
 tensorboard==1.14.0
 tensorflow==1.14.0
 Twisted==19.2.1

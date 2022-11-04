@@ -4,7 +4,7 @@ pandas==0.24.2
 Scrapy==1.6.0
 tensorboard==1.14.0
 tensorflow==1.14.0
-Twisted==19.2.1
+Twisted==22.10.0
 pywin32==224
 PyVirtualDisplay==0.2.3
 selenium==3.141.0
